@@ -10,7 +10,7 @@ http {
   server {
     listen ${PROXY_HTTP_PORT};
     server_name ${PROXY_SERVER_NAME};
-    return 301 https://$host$request_uri;
+    return 301 https://$host:${DBO_HOST_HTTPS_PORT}$request_uri;
   }
 
   server {
