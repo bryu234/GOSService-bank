@@ -57,7 +57,8 @@ pass "MFA is intentionally disabled in START"
 
 docker exec -e PGPASSWORD="$ACC_DB_PASSWORD" bank_acc_sys \
   psql -h 127.0.0.1 -U "$ACC_DB_USER" -d "$ACC_DB_NAME" \
-  -tAc "select 1 from llx_usergroup where nom='acc_read'" | grep -q 1
+  -tAc "select 1 from llx_usergroup where nom='acc_read'" | grep -q 1 || \
+  fail "Dolibarr is missing the LDAP-derived acc_read group"
 pass "Dolibarr is initialized with LDAP-derived accounting groups"
 
 echo "START verification completed successfully."

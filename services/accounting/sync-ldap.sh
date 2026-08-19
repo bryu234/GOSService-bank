@@ -7,7 +7,8 @@ psql -h 127.0.0.1 -U "$ACC_DB_USER" -d "$ACC_DB_NAME" -v ON_ERROR_STOP=1 \
   --set=ldap_admin_dn="$LDAP_ADMIN_DN" --set=ldap_admin_pass="$LDAP_ADMIN_PASSWORD" \
   --set=ldap_base_dn="$LDAP_BASE_DN" <<'SQL'
 DELETE FROM llx_const WHERE entity = 1 AND name IN (
-  'LDAP_SERVER_HOST','LDAP_SERVER_PORT','LDAP_SERVER_TYPE','LDAP_SERVER_PROTOCOL_VERSION',
+  'LDAP_SERVER_HOST','LDAP_SERVER_PORT','LDAP_SERVER_TYPE','LDAP_SERVER_PROTOCOLVERSION',
+  'LDAP_SERVER_PROTOCOL_VERSION','LDAP_SERVER_DN',
   'LDAP_ADMIN_DN','LDAP_ADMIN_PASS','LDAP_USER_DN','LDAP_GROUP_DN','LDAP_KEY_USERS',
   'LDAP_KEY_GROUPS','LDAP_FIELD_LOGIN','LDAP_FIELD_FULLNAME','LDAP_FIELD_NAME',
   'LDAP_FIELD_FIRSTNAME','LDAP_FIELD_MAIL','LDAP_GROUP_FIELD_FULLNAME',
@@ -15,10 +16,11 @@ DELETE FROM llx_const WHERE entity = 1 AND name IN (
   'LDAP_GROUP_FILTER'
 );
 INSERT INTO llx_const (name, entity, value, type, visible) VALUES
-  ('LDAP_SERVER_HOST',1,:'ldap_host','string',0),
+  ('LDAP_SERVER_HOST',1,'ldap://' || :'ldap_host','string',0),
   ('LDAP_SERVER_PORT',1,:'ldap_port','string',0),
   ('LDAP_SERVER_TYPE',1,'openldap','string',0),
-  ('LDAP_SERVER_PROTOCOL_VERSION',1,'3','string',0),
+  ('LDAP_SERVER_PROTOCOLVERSION',1,'3','string',0),
+  ('LDAP_SERVER_DN',1,:'ldap_base_dn','string',0),
   ('LDAP_ADMIN_DN',1,:'ldap_admin_dn','string',0),
   ('LDAP_ADMIN_PASS',1,:'ldap_admin_pass','string',0),
   ('LDAP_USER_DN',1,:'ldap_base_dn','string',0),

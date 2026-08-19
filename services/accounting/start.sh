@@ -76,7 +76,7 @@ if [[ ! -e /state/.dolibarr-installed ]]; then
   cat >>"$conf" <<'PHP'
 
 // Bank Lab START: LDAP is deliberately broad and MFA is not enabled.
-$dolibarr_main_auth_ldap_host=getenv('BANK_LDAP_IP');
+$dolibarr_main_auth_ldap_host='ldap://'.getenv('BANK_LDAP_IP');
 $dolibarr_main_auth_ldap_port=getenv('LDAP_PORT');
 $dolibarr_main_auth_ldap_version='3';
 $dolibarr_main_auth_ldap_servertype='openldap';
@@ -90,6 +90,12 @@ PHP
   chmod 0640 "$conf"
   touch /state/.dolibarr-installed
 fi
+
+# Dolibarr 23 uses the single-argument ldap_connect() form on PHP 8.3+, so a
+# persisted host must be a full LDAP URI.  Migrate configurations created by
+# earlier lab images before Apache starts.
+conf=/state/dolibarr/htdocs/conf/conf.php
+sed -i "s#^\$dolibarr_main_auth_ldap_host=getenv('BANK_LDAP_IP');#\$dolibarr_main_auth_ldap_host='ldap://'.getenv('BANK_LDAP_IP');#" "$conf"
 
 envsubst </defaults/accounting-apache.conf.template >/state/apache/accounting.conf
 ln -sf /state/apache/accounting.conf /etc/apache2/sites-enabled/000-default.conf
