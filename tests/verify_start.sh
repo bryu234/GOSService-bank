@@ -22,6 +22,14 @@ pass "9 bank networks exist"
 docker exec bank_router sh -ec 'test "$(cat /proc/sys/net/ipv4/ip_forward)" = 1; nft list chain inet banklab_filter forward | grep -q "policy accept"'
 pass "router START forwarding is permissive"
 
+for port in "$ARM_OPER_HOST_SSH_PORT" "$ARM_CASH_HOST_SSH_PORT" "$ARM_ACC_HOST_SSH_PORT" "$ARM_IT_HOST_SSH_PORT" \
+            "$ARM_OPER_HOST_RDP_PORT" "$ARM_CASH_HOST_RDP_PORT" "$ARM_ACC_HOST_RDP_PORT" "$ARM_IT_HOST_RDP_PORT"; do
+  docker port bank_router "${port}/tcp" | grep -q ":${port}$" || fail "router does not publish ARM port $port"
+  docker exec bank_router nft -n list chain ip banklab_nat prerouting | \
+    grep -q "tcp dport ${port} dnat" || fail "router is missing DNAT for ARM port $port"
+done
+pass "router publishes and DNATs all 8 ARM access ports"
+
 group_list() {
   local dn="$1"
   docker exec bank_ldap ldapsearch -LLL -x -H ldap://127.0.0.1 \
