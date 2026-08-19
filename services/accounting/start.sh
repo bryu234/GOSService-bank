@@ -97,6 +97,21 @@ fi
 conf=/state/dolibarr/htdocs/conf/conf.php
 sed -i "s#^\$dolibarr_main_auth_ldap_host=getenv('BANK_LDAP_IP');#\$dolibarr_main_auth_ldap_host='ldap://'.getenv('BANK_LDAP_IP');#" "$conf"
 
+# Complete the minimum company profile required by Dolibarr before users are
+# allowed onto the normal home page.  Existing student changes win.
+PGPASSWORD="$ACC_DB_PASSWORD" psql -h 127.0.0.1 -U "$ACC_DB_USER" -d "$ACC_DB_NAME" \
+  -v ON_ERROR_STOP=1 <<'SQL'
+INSERT INTO llx_const (name, entity, value, type, visible)
+SELECT 'MAIN_INFO_SOCIETE_NOM', 1, 'Virtual Bank', 'chaine', 0
+WHERE NOT EXISTS (SELECT 1 FROM llx_const WHERE entity = 1 AND name = 'MAIN_INFO_SOCIETE_NOM');
+INSERT INTO llx_const (name, entity, value, type, visible)
+SELECT 'MAIN_INFO_SOCIETE_COUNTRY', 1, '19:RU:Russia', 'chaine', 0
+WHERE NOT EXISTS (SELECT 1 FROM llx_const WHERE entity = 1 AND name = 'MAIN_INFO_SOCIETE_COUNTRY');
+INSERT INTO llx_const (name, entity, value, type, visible)
+SELECT 'MAIN_MONNAIE', 1, 'RUB', 'chaine', 0
+WHERE NOT EXISTS (SELECT 1 FROM llx_const WHERE entity = 1 AND name = 'MAIN_MONNAIE');
+SQL
+
 envsubst </defaults/accounting-apache.conf.template >/state/apache/accounting.conf
 ln -sf /state/apache/accounting.conf /etc/apache2/sites-enabled/000-default.conf
 
