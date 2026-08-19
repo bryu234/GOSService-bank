@@ -46,10 +46,47 @@ print(n.network_address, n.netmask)
 PY
 )
 
+export_route_parts() {
+  local prefix="$1" subnet="$2" network netmask
+  read -r network netmask < <(python3 - "$subnet" <<'PY'
+import ipaddress, sys
+n = ipaddress.ip_network(sys.argv[1])
+print(n.network_address, n.netmask)
+PY
+  )
+  printf -v "${prefix}_NETWORK" %s "$network"
+  printf -v "${prefix}_NETMASK" %s "$netmask"
+  export "${prefix}_NETWORK" "${prefix}_NETMASK"
+}
+
+export_route_parts DMZ "$DMZ_SUBNET"
+export_route_parts SERVER "$SERVER_SUBNET"
+export_route_parts DATABASE "$DATABASE_SUBNET"
+export_route_parts MANAGEMENT "$MANAGEMENT_SUBNET"
+export_route_parts VLAN10_OPER "$VLAN10_OPER_SUBNET"
+export_route_parts VLAN20_CASH "$VLAN20_CASH_SUBNET"
+export_route_parts VLAN30_ACC "$VLAN30_ACC_SUBNET"
+export_route_parts VLAN40_IT "$VLAN40_IT_SUBNET"
+
 if [[ ! -s "$vpn_dir/server.conf" ]]; then
   export VPN_NETWORK="$vpn_network" VPN_NETMASK="$vpn_netmask"
   envsubst </defaults/server.conf.template >"$vpn_dir/server.conf"
 fi
+
+migrate_route() {
+  local prefix="$1" subnet="$2" network_var="${1}_NETWORK" netmask_var="${1}_NETMASK"
+  sed -i "s#^push \"route ${subnet}\"$#push \"route ${!network_var} ${!netmask_var}\"#" "$vpn_dir/server.conf"
+}
+
+migrate_route DMZ "$DMZ_SUBNET"
+migrate_route SERVER "$SERVER_SUBNET"
+migrate_route DATABASE "$DATABASE_SUBNET"
+migrate_route MANAGEMENT "$MANAGEMENT_SUBNET"
+migrate_route VLAN10_OPER "$VLAN10_OPER_SUBNET"
+migrate_route VLAN20_CASH "$VLAN20_CASH_SUBNET"
+migrate_route VLAN30_ACC "$VLAN30_ACC_SUBNET"
+migrate_route VLAN40_IT "$VLAN40_IT_SUBNET"
+
 while IFS='=' read -r name value; do
   grep -q "^setenv ${name} " "$vpn_dir/server.conf" || printf 'setenv %s %s\n' "$name" "$value" >>"$vpn_dir/server.conf"
 done <<EOF

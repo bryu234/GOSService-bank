@@ -16,14 +16,14 @@ username-as-common-name
 setenv BANK_LDAP_IP ${BANK_LDAP_IP}
 setenv LDAP_PORT ${LDAP_PORT}
 setenv LDAP_BASE_DN ${LDAP_BASE_DN}
-push "route ${DMZ_SUBNET}"
-push "route ${SERVER_SUBNET}"
-push "route ${DATABASE_SUBNET}"
-push "route ${MANAGEMENT_SUBNET}"
-push "route ${VLAN10_OPER_SUBNET}"
-push "route ${VLAN20_CASH_SUBNET}"
-push "route ${VLAN30_ACC_SUBNET}"
-push "route ${VLAN40_IT_SUBNET}"
+push "route ${DMZ_NETWORK} ${DMZ_NETMASK}"
+push "route ${SERVER_NETWORK} ${SERVER_NETMASK}"
+push "route ${DATABASE_NETWORK} ${DATABASE_NETMASK}"
+push "route ${MANAGEMENT_NETWORK} ${MANAGEMENT_NETMASK}"
+push "route ${VLAN10_OPER_NETWORK} ${VLAN10_OPER_NETMASK}"
+push "route ${VLAN20_CASH_NETWORK} ${VLAN20_CASH_NETMASK}"
+push "route ${VLAN30_ACC_NETWORK} ${VLAN30_ACC_NETMASK}"
+push "route ${VLAN40_IT_NETWORK} ${VLAN40_IT_NETMASK}"
 keepalive 10 60
 persist-key
 persist-tun
