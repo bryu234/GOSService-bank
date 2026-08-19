@@ -18,7 +18,8 @@ macOS-профиль предназначен для сборки и огран�
 ## Быстрый запуск
 
 ```bash
-cd bank-lab
+git clone https://github.com/bryu234/GOSService-bank.git
+cd GOSService-bank
 make env
 nano .env
 make preflight
