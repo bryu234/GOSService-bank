@@ -13,6 +13,9 @@ verify-client-cert require
 script-security 3
 auth-user-pass-verify /usr/local/libexec/bank-vpn-ldap-auth via-file
 username-as-common-name
+setenv BANK_LDAP_IP ${BANK_LDAP_IP}
+setenv LDAP_PORT ${LDAP_PORT}
+setenv LDAP_BASE_DN ${LDAP_BASE_DN}
 push "route ${DMZ_SUBNET}"
 push "route ${SERVER_SUBNET}"
 push "route ${DATABASE_SUBNET}"

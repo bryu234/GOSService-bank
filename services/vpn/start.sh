@@ -2,7 +2,7 @@
 set -euo pipefail
 source /usr/local/lib/banklab-common.sh
 
-banklab_require VPN_POOL VPN_PORT BANK_LDAP_IP LDAP_BASE_DN LDAP_BIND_DN LDAP_BIND_PASSWORD
+banklab_require VPN_POOL VPN_PORT BANK_LDAP_IP LDAP_PORT LDAP_BASE_DN
 banklab_init_state bank_vpn
 banklab_start_support
 
@@ -50,6 +50,13 @@ if [[ ! -s "$vpn_dir/server.conf" ]]; then
   export VPN_NETWORK="$vpn_network" VPN_NETMASK="$vpn_netmask"
   envsubst </defaults/server.conf.template >"$vpn_dir/server.conf"
 fi
+while IFS='=' read -r name value; do
+  grep -q "^setenv ${name} " "$vpn_dir/server.conf" || printf 'setenv %s %s\n' "$name" "$value" >>"$vpn_dir/server.conf"
+done <<EOF
+BANK_LDAP_IP=$BANK_LDAP_IP
+LDAP_PORT=$LDAP_PORT
+LDAP_BASE_DN=$LDAP_BASE_DN
+EOF
 
 if [[ ! -s "$vpn_dir/client.ovpn" || "$refresh_client" = 1 ]]; then
   cat >"$vpn_dir/client.ovpn" <<EOF
