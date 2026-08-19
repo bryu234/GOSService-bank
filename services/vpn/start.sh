@@ -75,7 +75,7 @@ fi
 
 migrate_route() {
   local prefix="$1" subnet="$2" network_var="${1}_NETWORK" netmask_var="${1}_NETMASK"
-  sed -i "s#^push \"route ${subnet}\"$#push \"route ${!network_var} ${!netmask_var}\"#" "$vpn_dir/server.conf"
+  sed -i "s#^push \"route ${subnet}\"\$#push \"route ${!network_var} ${!netmask_var}\"#" "$vpn_dir/server.conf"
 }
 
 migrate_route DMZ "$DMZ_SUBNET"
