@@ -2,7 +2,7 @@
 set -euo pipefail
 source /usr/local/lib/banklab-common.sh
 
-banklab_require VPN_POOL VPN_PORT BANK_LDAP_IP LDAP_BASE_DN
+banklab_require VPN_POOL VPN_PORT BANK_LDAP_IP LDAP_BASE_DN LDAP_BIND_DN LDAP_BIND_PASSWORD
 banklab_init_state bank_vpn
 banklab_start_support
 
