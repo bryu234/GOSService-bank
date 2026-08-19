@@ -1,0 +1,7 @@
+.env
+.cache/
+__pycache__/
+*.py[cod]
+vendor/owasp-101/
+vendor/dolibarr/
+*.log

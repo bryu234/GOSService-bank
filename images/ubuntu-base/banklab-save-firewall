@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+state_dir="${BANKLAB_STATE_DIR:-/state}"
+nft list ruleset >"$state_dir/nftables.conf"
+echo "Saved nftables ruleset to $state_dir/nftables.conf"

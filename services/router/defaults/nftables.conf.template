@@ -1,0 +1,39 @@
+flush ruleset
+
+table inet banklab_filter {
+  chain input {
+    type filter hook input priority filter;
+    policy accept;
+  }
+
+  chain forward {
+    type filter hook forward priority filter;
+    policy accept;
+
+    # START vulnerability: all inter-zone forwarding is accepted.
+    ct state established,related accept
+    ip saddr { ${VLAN10_OPER_SUBNET}, ${VLAN20_CASH_SUBNET}, ${VLAN30_ACC_SUBNET}, ${VLAN40_IT_SUBNET} } accept comment "START: user VLANs can reach excessive zones"
+    ip saddr ${DMZ_SUBNET} accept comment "START: DMZ can reach excessive internal services"
+    ip saddr ${VPN_POOL} accept comment "START: VPN clients have broad internal access"
+  }
+
+  chain output {
+    type filter hook output priority filter;
+    policy accept;
+  }
+}
+
+table ip banklab_nat {
+  chain prerouting {
+    type nat hook prerouting priority dstnat;
+    policy accept;
+    tcp dport ${PROXY_HTTP_PORT} dnat to ${BANK_PROXY_IP}:${PROXY_HTTP_PORT}
+    tcp dport ${PROXY_HTTPS_PORT} dnat to ${BANK_PROXY_IP}:${PROXY_HTTPS_PORT}
+  }
+
+  chain postrouting {
+    type nat hook postrouting priority srcnat;
+    policy accept;
+    ip saddr { ${DMZ_SUBNET}, ${SERVER_SUBNET}, ${DATABASE_SUBNET}, ${MANAGEMENT_SUBNET}, ${VLAN10_OPER_SUBNET}, ${VLAN20_CASH_SUBNET}, ${VLAN30_ACC_SUBNET}, ${VLAN40_IT_SUBNET}, ${VPN_POOL} } masquerade
+  }
+}

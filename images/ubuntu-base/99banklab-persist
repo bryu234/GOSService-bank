@@ -1,0 +1,1 @@
+DPkg::Post-Invoke { "/usr/local/sbin/banklab-record-packages || true"; };

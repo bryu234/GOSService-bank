@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+state_dir="${BANKLAB_STATE_DIR:-/state}"
+ip -4 route show | awk '$1 == "default" || $1 ~ /^[0-9]+\./ {print}' >"$state_dir/routes.conf"
+echo "Saved IPv4 routes to $state_dir/routes.conf"

@@ -1,0 +1,18 @@
+.env
+.git
+**/.git
+.cache
+**/__pycache__
+**/*.py[cod]
+*.log
+
+# Only the pinned application trees copied by our Dockerfiles belong in the
+# build context.  The full upstream checkouts remain available to make vendor.
+vendor/owasp-101/*
+!vendor/owasp-101/python/
+!vendor/owasp-101/python/**
+vendor/dolibarr/*
+!vendor/dolibarr/htdocs/
+!vendor/dolibarr/htdocs/**
+!vendor/dolibarr/scripts/
+!vendor/dolibarr/scripts/**

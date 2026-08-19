@@ -1,0 +1,492 @@
+name: ${COMPOSE_PROJECT_NAME:-banklab}
+
+x-common: &common
+  env_file:
+    - ./.env
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-bank-hosts: &bank_hosts
+  - "bank_router:${ROUTER_MANAGEMENT_IP}"
+  - "bank_vpn:${BANK_VPN_IP}"
+  - "bank_proxy:${BANK_PROXY_IP}"
+  - "dbo.bank.lab:${BANK_PROXY_IP}"
+  - "bank_dbo_web:${BANK_DBO_IP}"
+  - "bank_abs:${BANK_ABS_IP}"
+  - "abs.bank.lab:${BANK_ABS_IP}"
+  - "bank_abs_db:${BANK_ABS_DB_IP}"
+  - "bank_acc_sys:${BANK_ACC_SYS_IP}"
+  - "accounting.bank.lab:${BANK_ACC_SYS_IP}"
+  - "bank_ldap:${BANK_LDAP_IP}"
+  - "bank_pam:${BANK_PAM_IP}"
+  - "bank_adm_srv:${BANK_ADM_IP}"
+  - "bank_backup:${BANK_BACKUP_IP}"
+  - "bank_arm_oper:${BANK_ARM_OPER_IP}"
+  - "bank_arm_cash:${BANK_ARM_CASH_IP}"
+  - "bank_arm_acc:${BANK_ARM_ACC_IP}"
+  - "bank_arm_it:${BANK_ARM_IT_IP}"
+
+services:
+  bank_router:
+    <<: *common
+    image: banklab/router:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/router/Dockerfile
+    container_name: bank_router
+    hostname: bank_router
+    cap_add: [NET_ADMIN, NET_RAW]
+    sysctls:
+      net.ipv4.ip_forward: "1"
+    volumes:
+      - bank_router_state:/state
+    extra_hosts: *bank_hosts
+    networks:
+      net_untrusted: {ipv4_address: "${ROUTER_UNTRUSTED_IP}"}
+      net_dmz: {ipv4_address: "${ROUTER_DMZ_IP}"}
+      net_server: {ipv4_address: "${ROUTER_SERVER_IP}"}
+      net_database: {ipv4_address: "${ROUTER_DATABASE_IP}"}
+      net_management: {ipv4_address: "${ROUTER_MANAGEMENT_IP}"}
+      net_vlan10_oper: {ipv4_address: "${ROUTER_VLAN10_OPER_IP}"}
+      net_vlan20_cash: {ipv4_address: "${ROUTER_VLAN20_CASH_IP}"}
+      net_vlan30_acc: {ipv4_address: "${ROUTER_VLAN30_ACC_IP}"}
+      net_vlan40_it: {ipv4_address: "${ROUTER_VLAN40_IT_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "test \"$$(cat /proc/sys/net/ipv4/ip_forward)\" = 1 && nft list ruleset >/dev/null && nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  bank_ldap:
+    <<: *common
+    image: banklab/ldap:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/ldap/Dockerfile
+    container_name: bank_ldap
+    hostname: bank_ldap
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_MANAGEMENT_IP}
+    volumes:
+      - bank_ldap_state:/state
+      - bank_ldap_data:/var/lib/ldap
+      - bank_ldap_config:/etc/ldap/slapd.d
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+    networks:
+      net_management: {ipv4_address: "${BANK_LDAP_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "ldapsearch -x -H ldap://127.0.0.1 -b \"$$LDAP_BASE_DN\" -s base dn >/dev/null && nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+
+  bank_vpn:
+    <<: *common
+    image: banklab/vpn:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/vpn/Dockerfile
+    container_name: bank_vpn
+    hostname: bank_vpn
+    cap_add: [NET_ADMIN, NET_RAW]
+    sysctls:
+      net.ipv4.ip_forward: "1"
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_UNTRUSTED_IP}
+    volumes:
+      - bank_vpn_state:/state
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_ldap: {condition: service_healthy}
+    networks:
+      net_untrusted: {ipv4_address: "${BANK_VPN_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zu 127.0.0.1 $$VPN_PORT && nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  bank_proxy:
+    <<: *common
+    image: banklab/proxy:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/proxy/Dockerfile
+    container_name: bank_proxy
+    hostname: bank_proxy
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_DMZ_IP}
+    volumes:
+      - bank_proxy_state:/state
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_dbo_web: {condition: service_healthy}
+    networks:
+      net_dmz: {ipv4_address: "${BANK_PROXY_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t && nc -z 127.0.0.1 443 && nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  bank_dbo_web:
+    <<: *common
+    image: banklab/dbo:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/dbo/Dockerfile
+    container_name: bank_dbo_web
+    hostname: bank_dbo_web
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_DMZ_IP}
+    volumes:
+      - bank_dbo_state:/state
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_ldap: {condition: service_healthy}
+    networks:
+      net_dmz: {ipv4_address: "${BANK_DBO_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$$DBO_APP_PORT/healthz >/dev/null && nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+
+  bank_abs_db:
+    <<: *common
+    image: banklab/abs-db:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/abs-db/Dockerfile
+    container_name: bank_abs_db
+    hostname: bank_abs_db
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_DATABASE_IP}
+    volumes:
+      - bank_abs_db_state:/state
+      - bank_abs_db_data:/var/lib/postgresql/16/main
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+    networks:
+      net_database: {ipv4_address: "${BANK_ABS_DB_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p $$ABS_DB_PORT -U $$ABS_DB_USER -d $$ABS_DB_NAME && nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+
+  bank_abs:
+    <<: *common
+    image: banklab/abs:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/abs/Dockerfile
+    container_name: bank_abs
+    hostname: bank_abs
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_SERVER_IP}
+    volumes:
+      - bank_abs_state:/state
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_ldap: {condition: service_healthy}
+      bank_abs_db: {condition: service_healthy}
+    networks:
+      net_server: {ipv4_address: "${BANK_ABS_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$$ABS_APP_PORT/sign-in >/dev/null && nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+
+  bank_acc_sys:
+    <<: *common
+    image: banklab/accounting:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/accounting/Dockerfile
+    container_name: bank_acc_sys
+    hostname: bank_acc_sys
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_SERVER_IP}
+    volumes:
+      - bank_acc_state:/state
+      - bank_acc_db_data:/var/lib/postgresql/16/main
+      - bank_acc_documents:/var/lib/dolibarr/documents
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_ldap: {condition: service_healthy}
+    networks:
+      net_server: {ipv4_address: "${BANK_ACC_SYS_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$$ACC_APP_PORT/ >/dev/null && pg_isready -h 127.0.0.1 -U $$ACC_DB_USER -d $$ACC_DB_NAME && nc -z 127.0.0.1 22"]
+      interval: 15s
+      timeout: 8s
+      retries: 24
+      start_period: 60s
+
+  bank_pam:
+    <<: *common
+    image: banklab/pam:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/pam/Dockerfile
+    container_name: bank_pam
+    hostname: bank_pam
+    cap_add: [NET_ADMIN, AUDIT_WRITE]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_MANAGEMENT_IP}
+    volumes:
+      - bank_pam_state:/state
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_ldap: {condition: service_healthy}
+    networks:
+      net_management: {ipv4_address: "${BANK_PAM_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  bank_adm_srv:
+    <<: *common
+    image: banklab/admin:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/admin/Dockerfile
+    container_name: bank_adm_srv
+    hostname: bank_adm_srv
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_MANAGEMENT_IP}
+    volumes:
+      - bank_adm_state:/state
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_ldap: {condition: service_healthy}
+    networks:
+      net_management: {ipv4_address: "${BANK_ADM_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  bank_backup:
+    <<: *common
+    image: banklab/backup:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/backup/Dockerfile
+    container_name: bank_backup
+    hostname: bank_backup
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_MANAGEMENT_IP}
+    volumes:
+      - bank_backup_state:/state
+      - bank_backup_data:/srv/backup
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_ldap: {condition: service_healthy}
+    networks:
+      net_management: {ipv4_address: "${BANK_BACKUP_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 22 && test -d /srv/backup"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  bank_arm_oper:
+    <<: *common
+    image: banklab/arm-gui:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: images/arm-gui/Dockerfile
+    container_name: bank_arm_oper
+    hostname: bank_arm_oper
+    shm_size: 512m
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_VLAN10_OPER_IP}
+      BUSINESS_USER: ${OPER_USER}
+      BUSINESS_PASSWORD: ${OPER_PASSWORD}
+      ARM_ROLE: operator
+    volumes:
+      - bank_arm_oper_state:/state
+      - bank_arm_oper_home:/home
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_abs: {condition: service_healthy}
+    networks:
+      net_vlan10_oper: {ipv4_address: "${BANK_ARM_OPER_IP}"}
+    healthcheck: &arm_health
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 22 && nc -z 127.0.0.1 3389"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+
+  bank_arm_cash:
+    <<: *common
+    image: banklab/arm-gui:${BANKLAB_IMAGE_TAG:-1.0}
+    container_name: bank_arm_cash
+    hostname: bank_arm_cash
+    shm_size: 512m
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_VLAN20_CASH_IP}
+      BUSINESS_USER: ${CASH_USER}
+      BUSINESS_PASSWORD: ${CASH_PASSWORD}
+      ARM_ROLE: cashier
+    volumes:
+      - bank_arm_cash_state:/state
+      - bank_arm_cash_home:/home
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_abs: {condition: service_healthy}
+      bank_acc_sys: {condition: service_healthy}
+    networks:
+      net_vlan20_cash: {ipv4_address: "${BANK_ARM_CASH_IP}"}
+    healthcheck: *arm_health
+
+  bank_arm_acc:
+    <<: *common
+    image: banklab/arm-gui:${BANKLAB_IMAGE_TAG:-1.0}
+    container_name: bank_arm_acc
+    hostname: bank_arm_acc
+    shm_size: 512m
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_VLAN30_ACC_IP}
+      BUSINESS_USER: ${ACC_USER}
+      BUSINESS_PASSWORD: ${ACC_PASSWORD}
+      ARM_ROLE: accountant
+    volumes:
+      - bank_arm_acc_state:/state
+      - bank_arm_acc_home:/home
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_acc_sys: {condition: service_healthy}
+    networks:
+      net_vlan30_acc: {ipv4_address: "${BANK_ARM_ACC_IP}"}
+    healthcheck: *arm_health
+
+  bank_arm_it:
+    <<: *common
+    image: banklab/arm-gui:${BANKLAB_IMAGE_TAG:-1.0}
+    container_name: bank_arm_it
+    hostname: bank_arm_it
+    shm_size: 512m
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_VLAN40_IT_IP}
+      BUSINESS_USER: ${IT_USER}
+      BUSINESS_PASSWORD: ${IT_PASSWORD}
+      ARM_ROLE: it
+    volumes:
+      - bank_arm_it_state:/state
+      - bank_arm_it_home:/home
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_pam: {condition: service_healthy}
+    networks:
+      net_vlan40_it: {ipv4_address: "${BANK_ARM_IT_IP}"}
+    healthcheck: *arm_health
+
+networks:
+  net_untrusted:
+    name: bank_net_untrusted
+    ipam: {config: [{subnet: "${UNTRUSTED_SUBNET}"}]}
+  net_dmz:
+    name: bank_net_dmz
+    internal: true
+    ipam: {config: [{subnet: "${DMZ_SUBNET}"}]}
+  net_server:
+    name: bank_net_server
+    internal: true
+    ipam: {config: [{subnet: "${SERVER_SUBNET}"}]}
+  net_database:
+    name: bank_net_database
+    internal: true
+    ipam: {config: [{subnet: "${DATABASE_SUBNET}"}]}
+  net_management:
+    name: bank_net_management
+    internal: true
+    ipam: {config: [{subnet: "${MANAGEMENT_SUBNET}"}]}
+  net_vlan10_oper:
+    name: bank_net_vlan10_oper
+    internal: true
+    ipam: {config: [{subnet: "${VLAN10_OPER_SUBNET}"}]}
+  net_vlan20_cash:
+    name: bank_net_vlan20_cash
+    internal: true
+    ipam: {config: [{subnet: "${VLAN20_CASH_SUBNET}"}]}
+  net_vlan30_acc:
+    name: bank_net_vlan30_acc
+    internal: true
+    ipam: {config: [{subnet: "${VLAN30_ACC_SUBNET}"}]}
+  net_vlan40_it:
+    name: bank_net_vlan40_it
+    internal: true
+    ipam: {config: [{subnet: "${VLAN40_IT_SUBNET}"}]}
+
+volumes:
+  bank_router_state:
+  bank_vpn_state:
+  bank_proxy_state:
+  bank_dbo_state:
+  bank_abs_state:
+  bank_abs_db_state:
+  bank_abs_db_data:
+  bank_acc_state:
+  bank_acc_db_data:
+  bank_acc_documents:
+  bank_ldap_state:
+  bank_ldap_data:
+  bank_ldap_config:
+  bank_pam_state:
+  bank_adm_state:
+  bank_backup_state:
+  bank_backup_data:
+  bank_arm_oper_state:
+  bank_arm_cash_state:
+  bank_arm_acc_state:
+  bank_arm_it_state:
+  bank_arm_oper_home:
+  bank_arm_cash_home:
+  bank_arm_acc_home:
+  bank_arm_it_home:

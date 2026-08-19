@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "${BANKLAB_PACKAGE_REPLAY:-0}" == "1" ]] && exit 0
+state_dir="${BANKLAB_STATE_DIR:-/state}"
+[[ -f "$state_dir/.initialized" && -f /usr/share/banklab/base-packages ]] || exit 0
+comm -23 <(apt-mark showmanual | sort -u) <(sort -u /usr/share/banklab/base-packages) >"$state_dir/packages.manual.tmp"
+mv "$state_dir/packages.manual.tmp" "$state_dir/packages.manual"

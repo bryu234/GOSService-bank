@@ -1,0 +1,24 @@
+services:
+  bank_router:
+    ports:
+      - "127.0.0.1:${DBO_HOST_HTTP_PORT}:${PROXY_HTTP_PORT}/tcp"
+      - "127.0.0.1:${DBO_HOST_HTTPS_PORT}:${PROXY_HTTPS_PORT}/tcp"
+  bank_vpn:
+    ports:
+      - "127.0.0.1:${VPN_HOST_PORT}:${VPN_PORT}/udp"
+  bank_arm_oper:
+    ports:
+      - "127.0.0.1:${ARM_OPER_HOST_SSH_PORT}:${SSH_PORT}/tcp"
+      - "127.0.0.1:${ARM_OPER_HOST_RDP_PORT}:${RDP_PORT}/tcp"
+  bank_arm_cash:
+    ports:
+      - "127.0.0.1:${ARM_CASH_HOST_SSH_PORT}:${SSH_PORT}/tcp"
+      - "127.0.0.1:${ARM_CASH_HOST_RDP_PORT}:${RDP_PORT}/tcp"
+  bank_arm_acc:
+    ports:
+      - "127.0.0.1:${ARM_ACC_HOST_SSH_PORT}:${SSH_PORT}/tcp"
+      - "127.0.0.1:${ARM_ACC_HOST_RDP_PORT}:${RDP_PORT}/tcp"
+  bank_arm_it:
+    ports:
+      - "127.0.0.1:${ARM_IT_HOST_SSH_PORT}:${SSH_PORT}/tcp"
+      - "127.0.0.1:${ARM_IT_HOST_RDP_PORT}:${RDP_PORT}/tcp"

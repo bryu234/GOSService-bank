@@ -1,0 +1,8 @@
+listen_addresses = '*'
+port = ${ABS_DB_PORT}
+max_connections = 100
+shared_buffers = 128MB
+password_encryption = 'scram-sha-256'
+logging_collector = on
+log_directory = '/state/postgresql/log'
+log_filename = 'postgresql.log'

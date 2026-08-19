@@ -1,0 +1,21 @@
+<?php
+$force_install_distrib = 'custom';
+$force_install_nophpinfo = true;
+$force_install_noedit = 2;
+$force_install_main_data_root = '/var/lib/dolibarr/documents';
+$force_install_mainforcehttps = false;
+$force_install_type = 'pgsql';
+$force_install_dbserver = '127.0.0.1';
+$force_install_port = 5432;
+$force_install_prefix = 'llx_';
+$force_install_database = getenv('ACC_DB_NAME');
+$force_install_databaselogin = getenv('ACC_DB_USER');
+$force_install_databasepass = getenv('ACC_DB_PASSWORD');
+$force_install_createdatabase = false;
+$force_install_createuser = false;
+$force_install_databaserootlogin = 'postgres';
+$force_install_databaserootpass = '';
+$force_install_dolibarrlogin = getenv('ACC_ADMIN_USER');
+$force_install_dolibarrpassword = getenv('ACC_ADMIN_PASSWORD');
+$force_install_lockinstall = true;
+$force_install_module = 'modSociete,modFacture,modBanque,modAccounting';

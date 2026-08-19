@@ -1,0 +1,19 @@
+Listen ${ACC_APP_PORT}
+ServerName accounting.bank.lab
+
+<VirtualHost *:${ACC_APP_PORT}>
+    DocumentRoot /state/dolibarr/htdocs
+    ErrorLog /state/apache/error.log
+    CustomLog /state/apache/access.log combined
+
+    <Directory /state/dolibarr/htdocs>
+        Options FollowSymLinks
+        AllowOverride All
+        Require all granted
+        DirectoryIndex index.php
+    </Directory>
+
+    <Directory /var/lib/dolibarr/documents>
+        Require all denied
+    </Directory>
+</VirtualHost>
