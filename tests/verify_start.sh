@@ -42,7 +42,7 @@ assert_groups "$IT_USER" People "abs_admin abs_read abs_write dbo_admin dbo_read
 assert_groups "$SVC_SHARED_USER" Services "abs_read abs_write acc_read acc_write dbo_read dbo_write mgmt_read mgmt_write"
 pass "LDAP START role matrix matches the specification"
 
-docker exec bank_arm_oper curl -fsS "http://bank_abs:${ABS_APP_PORT}/sign-in" >/dev/null
+docker exec bank_arm_oper curl -fsS "http://abs.bank.lab:${ABS_APP_PORT}/sign-in" >/dev/null
 docker exec bank_arm_cash curl -fsS "http://bank_acc_sys:${ACC_APP_PORT}/" >/dev/null
 docker exec bank_arm_it nc -z -w 3 bank_abs "$SSH_PORT"
 docker exec bank_arm_it nc -z -w 3 bank_adm_srv "$SSH_PORT"
