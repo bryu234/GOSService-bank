@@ -58,6 +58,11 @@ fi
 if [[ ! -s /state/nginx/snippets/authelia-authrequest.conf ]]; then
   cp /defaults/authelia-authrequest.conf /state/nginx/snippets/authelia-authrequest.conf
 fi
+if [[ "$MFA_GATEWAY_ROLE" == dbo && ! -e /state/.migration-dbo-original-url-v1 ]]; then
+  sed -i 's#X-Original-URL \$scheme://#X-Original-URL https://#; s#X-Forwarded-Proto \$http_x_forwarded_proto#X-Forwarded-Proto https#' \
+    /state/nginx/nginx.conf
+  touch /state/.migration-dbo-original-url-v1
+fi
 
 if [[ "$MFA_GATEWAY_TLS" == 1 && ! -s /state/tls/server.crt ]]; then
   openssl req -x509 -newkey rsa:3072 -nodes -days 1825 \
