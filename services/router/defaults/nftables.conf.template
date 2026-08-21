@@ -27,16 +27,16 @@ table ip banklab_nat {
   chain prerouting {
     type nat hook prerouting priority dstnat;
     policy accept;
-    tcp dport ${PROXY_HTTP_PORT} dnat to ${BANK_PROXY_IP}:${PROXY_HTTP_PORT}
-    tcp dport ${PROXY_HTTPS_PORT} dnat to ${BANK_PROXY_IP}:${PROXY_HTTPS_PORT}
-    tcp dport ${ARM_OPER_HOST_SSH_PORT} dnat to ${BANK_ARM_OPER_IP}:${SSH_PORT}
-    tcp dport ${ARM_CASH_HOST_SSH_PORT} dnat to ${BANK_ARM_CASH_IP}:${SSH_PORT}
-    tcp dport ${ARM_ACC_HOST_SSH_PORT} dnat to ${BANK_ARM_ACC_IP}:${SSH_PORT}
-    tcp dport ${ARM_IT_HOST_SSH_PORT} dnat to ${BANK_ARM_IT_IP}:${SSH_PORT}
-    tcp dport ${ARM_OPER_HOST_RDP_PORT} dnat to ${BANK_ARM_OPER_IP}:${RDP_PORT}
-    tcp dport ${ARM_CASH_HOST_RDP_PORT} dnat to ${BANK_ARM_CASH_IP}:${RDP_PORT}
-    tcp dport ${ARM_ACC_HOST_RDP_PORT} dnat to ${BANK_ARM_ACC_IP}:${RDP_PORT}
-    tcp dport ${ARM_IT_HOST_RDP_PORT} dnat to ${BANK_ARM_IT_IP}:${RDP_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${PROXY_HTTP_PORT} dnat to ${BANK_PROXY_IP}:${PROXY_HTTP_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${PROXY_HTTPS_PORT} dnat to ${BANK_PROXY_IP}:${PROXY_HTTPS_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${ARM_OPER_HOST_SSH_PORT} dnat to ${BANK_ARM_OPER_IP}:${SSH_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${ARM_CASH_HOST_SSH_PORT} dnat to ${BANK_ARM_CASH_IP}:${SSH_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${ARM_ACC_HOST_SSH_PORT} dnat to ${BANK_ARM_ACC_IP}:${SSH_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${ARM_IT_HOST_SSH_PORT} dnat to ${BANK_ARM_IT_IP}:${SSH_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${ARM_OPER_HOST_RDP_PORT} dnat to ${BANK_ARM_OPER_IP}:${RDP_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${ARM_CASH_HOST_RDP_PORT} dnat to ${BANK_ARM_CASH_IP}:${RDP_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${ARM_ACC_HOST_RDP_PORT} dnat to ${BANK_ARM_ACC_IP}:${RDP_PORT}
+    ip daddr ${ROUTER_UNTRUSTED_IP} tcp dport ${ARM_IT_HOST_RDP_PORT} dnat to ${BANK_ARM_IT_IP}:${RDP_PORT}
   }
 
   chain postrouting {

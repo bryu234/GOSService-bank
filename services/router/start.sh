@@ -2,7 +2,7 @@
 set -euo pipefail
 source /usr/local/lib/banklab-common.sh
 
-banklab_require UNTRUSTED_SUBNET DMZ_SUBNET SERVER_SUBNET DATABASE_SUBNET MANAGEMENT_SUBNET \
+banklab_require ROUTER_UNTRUSTED_IP UNTRUSTED_SUBNET DMZ_SUBNET SERVER_SUBNET DATABASE_SUBNET MANAGEMENT_SUBNET \
   VLAN10_OPER_SUBNET VLAN20_CASH_SUBNET VLAN30_ACC_SUBNET VLAN40_IT_SUBNET VPN_POOL \
   BANK_VPN_IP BANK_PROXY_IP PROXY_HTTP_PORT PROXY_HTTPS_PORT SSH_PORT RDP_PORT \
   BANK_ARM_OPER_IP BANK_ARM_CASH_IP BANK_ARM_ACC_IP BANK_ARM_IT_IP \
@@ -30,6 +30,13 @@ if [[ ! -e /state/.migration-arm-host-ports-v1 ]]; then
       sed -i "/tcp dport ${PROXY_HTTPS_PORT} dnat to/a\\$rule" /state/nftables.conf
   done
   touch /state/.migration-arm-host-ports-v1
+fi
+
+if [[ ! -e /state/.migration-scope-host-dnat-v1 ]]; then
+  sed -i -E "/dnat to / s/^([[:space:]]*)(tcp dport )/\\1ip daddr ${ROUTER_UNTRUSTED_IP} \\2/" \
+    /state/nftables.conf
+  nft -c -f /state/nftables.conf
+  touch /state/.migration-scope-host-dnat-v1
 fi
 banklab_start_support /state/nftables.conf
 
