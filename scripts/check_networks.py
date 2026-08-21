@@ -71,6 +71,8 @@ def main() -> int:
     failed = False
     for key, subnet in requested.items():
         managed_name = NETWORKS.get(key)
+        managed_present = any(name == managed_name and subnet == other for name, other in existing)
+        key_failed = False
         for name, other in existing:
             if subnet.version != other.version or not subnet.overlaps(other):
                 continue
@@ -78,11 +80,18 @@ def main() -> int:
                 continue
             print(f"ERROR: {key}={subnet} overlaps Docker network {name}={other}", file=sys.stderr)
             failed = True
+            key_failed = True
         for route in routes:
             if subnet.version == route.version and subnet.overlaps(route):
+                # Docker adds the running project's bridge subnet and gateway
+                # to the host route table. They are expected when preflight is
+                # repeated before an in-place `compose up`.
+                if managed_present and route.subnet_of(subnet):
+                    continue
                 print(f"ERROR: {key}={subnet} overlaps host route {route}", file=sys.stderr)
                 failed = True
-        if not failed:
+                key_failed = True
+        if not key_failed:
             print(f"{key}: {subnet} has no detected conflict")
     return 1 if failed else 0
 
