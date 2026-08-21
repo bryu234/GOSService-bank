@@ -15,8 +15,9 @@ if [[ ! -x /state/venv/bin/python ]]; then
   python3 -m venv /state/venv
   /state/venv/bin/pip install --no-index --find-links /opt/banklab/wheels -r /state/app/requirements.lock
 fi
-if [[ ! -e /state/app/bac/mfa.py ]]; then
-  cp /state/app/bac/mfa_disabled.py /state/app/bac/mfa.py
+if [[ ! -e /state/.migration-web-mfa-gateway-v1 ]]; then
+  sed -i '/bac\.mfa_middleware\.BankLabMfaMiddleware/d' /state/app/bac/settings.py
+  touch /state/.migration-web-mfa-gateway-v1
 fi
 
 cd /state/app

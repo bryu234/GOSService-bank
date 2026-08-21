@@ -24,7 +24,7 @@ done
 create_shortcut() {
   local user="$1" file="$2" title="$3" url="$4"
   local path="/home/$user/Desktop/$file.desktop"
-  if [[ ! -e "$path" ]]; then
+  if [[ ! -e "$path" ]] || grep -q '^Exec=falkon http://abs\.bank\.lab:' "$path"; then
     printf '%s\n' \
       '[Desktop Entry]' 'Type=Application' "Name=$title" "Exec=falkon $url" \
       'Terminal=false' 'Icon=web-browser' >"$path"
@@ -35,18 +35,18 @@ create_shortcut() {
 
 case "$ARM_ROLE" in
   operator)
-    create_shortcut "$BUSINESS_USER" abs "АБС" "http://abs.bank.lab:${ABS_APP_PORT}"
+    create_shortcut "$BUSINESS_USER" abs "АБС" "https://abs.bank.lab"
     create_shortcut "$BUSINESS_USER" dbo "ДБО" "https://dbo.bank.lab"
     ;;
   cashier)
-    create_shortcut "$BUSINESS_USER" abs "АБС" "http://abs.bank.lab:${ABS_APP_PORT}"
+    create_shortcut "$BUSINESS_USER" abs "АБС" "https://abs.bank.lab"
     create_shortcut "$BUSINESS_USER" accounting "Бухгалтерская система" "http://accounting.bank.lab:${ACC_APP_PORT}"
     ;;
   accountant)
     create_shortcut "$BUSINESS_USER" accounting "Бухгалтерская система" "http://accounting.bank.lab:${ACC_APP_PORT}"
     ;;
   it)
-    create_shortcut "$BUSINESS_USER" abs "АБС" "http://abs.bank.lab:${ABS_APP_PORT}"
+    create_shortcut "$BUSINESS_USER" abs "АБС" "https://abs.bank.lab"
     create_shortcut "$BUSINESS_USER" dbo "ДБО" "https://dbo.bank.lab"
     ;;
 esac

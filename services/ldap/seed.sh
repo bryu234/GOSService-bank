@@ -13,6 +13,7 @@ objectClass: inetOrgPerson
 uid: $uid
 cn: $display
 sn: $uid
+mail: $uid@$BANKLAB_DOMAIN
 userPassword: $hash
 
 EOF

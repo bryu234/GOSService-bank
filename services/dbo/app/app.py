@@ -7,8 +7,6 @@ import ldap
 import ldap.filter
 from flask import Flask, abort, redirect, render_template_string, request, session, url_for
 
-import mfa
-
 app = Flask(__name__)
 app.secret_key = os.environ["DBO_SECRET_KEY"]
 
@@ -70,7 +68,7 @@ def require(permission: str):
 
 @app.get("/healthz")
 def healthz():
-    return {"status": "ok", "mfa_enforced": False}
+    return {"status": "ok"}
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -80,14 +78,11 @@ def login():
         username = request.form.get("username", "")
         groups = authenticate(username, request.form.get("password", ""))
         if groups is not None and groups.intersection({"dbo_read", "dbo_write", "dbo_admin"}):
-            if mfa.required(username) and not mfa.verify(username, request.form.get("otp", "")):
-                error = "Неверный второй фактор"
-            else:
-                session.update(username=username, groups=sorted(groups))
-                return redirect(url_for("index"))
+            session.update(username=username, groups=sorted(groups))
+            return redirect(url_for("index"))
         else:
             error = "Неверные учетные данные или отсутствует роль ДБО"
-    return render_template_string(PAGE, title="Вход в ДБО", body=f"<p>{error}</p><form method=post><input name=username placeholder=Логин><input name=password type=password placeholder=Пароль><input name=otp placeholder='MFA (в START не используется)'><button>Войти</button></form>")
+    return render_template_string(PAGE, title="Вход в ДБО", body=f"<p>{error}</p><form method=post><input name=username placeholder=Логин><input name=password type=password placeholder=Пароль><button>Войти</button></form>")
 
 
 @app.get("/")

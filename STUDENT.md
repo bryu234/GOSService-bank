@@ -18,8 +18,10 @@
 4. Исправить LDAP PoLP: убрать лишний `abs_admin` у операциониста, сократить
    постоянные IT-права, вывести `svc_shared`, назначить отдельные `svc_abs`,
    `svc_dbo`, `svc_backup`, `svc_acc`.
-5. Включить TOTP MFA внутри существующих `bank_vpn`, `bank_dbo_web`, `bank_abs`
-   и `bank_pam`. Новые gateway-контейнеры создавать нельзя.
+5. Настроить TOTP MFA на `bank_vpn` и `bank_pam`, а для веб-систем использовать
+   готовые отдельные шлюзы: `bank_mfa_dbo` перед ДБО и `bank_mfa_abs` перед АБС.
+   Включить в каждом шлюзе LDAP, TOTP и nginx `auth_request`. Код ДБО и АБС не
+   менять.
 6. Сделать `bank_pam` обязательным jump host для privileged SSH, включить LDAP,
    MFA и запись административных сессий. Запретить прямой IT → server/admin SSH.
 7. Подтвердить, что обычные бизнес-сценарии сохранились и изменения переживают
@@ -42,16 +44,29 @@ sudo banklab-save-firewall
 ```
 
 Для SSH/PAM сначала редактируйте persistent-файл в `/state`, затем проверяйте
-`sshd -t`/конфигурацию PAM и только потом перезагружайте сервис. Python-модули
-MFA находятся в `/state/mfa.py` (ДБО) и `/state/app/bac/mfa.py` (АБС). OpenVPN
+`sshd -t`/конфигурацию PAM и только потом перезагружайте сервис. OpenVPN
 конфигурация — `/state/openvpn/server.conf`; PAM — `/state/pam`.
+
+На каждом веб-MFA-шлюзе начните с задания и готового примера:
+
+```bash
+cat /state/STUDENT_TASK.md
+sudo cp /state/authelia/configuration.yml.example /state/authelia/configuration.yml
+sudo nano /state/authelia/configuration.yml
+sudo nano /state/nginx/nginx.conf
+sudo banklab-mfa-validate
+sudo banklab-mfa-enable
+sudo banklab-mfa-status
+```
+
+Подробный порядок и контрольные сценарии: [docs/mfa-gateways.md](docs/mfa-gateways.md).
 
 ## Что приложить к сдаче
 
 - итоговые persistent-конфиги без приватных ключей и паролей;
 - таблицу разрешенных TARGET-потоков source → destination → port → reason;
 - вывод синтаксических проверок nftables, sshd, OpenVPN и приложений;
-- доказательства MFA для четырех точек;
+- доказательства MFA для VPN, PAM и обоих веб-шлюзов;
 - доказательство, что IT не обходит PAM;
 - проверку ролевых бизнес-сценариев;
 - проверку persistence после restart и VM reboot.

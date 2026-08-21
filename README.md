@@ -1,9 +1,9 @@
 # Virtual Bank student lab
 
-Рабочая реализация небезопасного START-стенда по ТЗ: 15 Ubuntu-машин в
+Рабочая реализация небезопасного START-стенда по ТЗ: 17 Ubuntu-машин в
 контейнерах, 9 изолированных зон, единый router/firewall, OpenVPN, nginx/ДБО,
-адаптированный OWASP-101, PostgreSQL, Dolibarr, OpenLDAP, PAM jump host и четыре
-XFCE/xRDP АРМ.
+адаптированный OWASP-101, PostgreSQL, Dolibarr, OpenLDAP, PAM jump host, два
+независимых MFA-шлюза и четыре XFCE/xRDP АРМ.
 
 ## Требования к хосту
 
@@ -56,14 +56,15 @@ CONFIRM=RESET make reset-local  # локальный профиль
 ## Где студент меняет состояние
 
 Каждая машина содержит `/state/STUDENT_TASK.md`. Изменяемые firewall, routes,
-SSH/PAM/MFA/app-конфиги и журналы находятся в `/state` и named volumes. После
+SSH/PAM/MFA-конфиги и журналы находятся в `/state` и named volumes. После
 изменения runtime firewall выполните `sudo banklab-save-firewall`; после
 изменения маршрутов — `sudo banklab-save-routes`. APT-пакеты автоматически
 фиксируются в `/state/packages.manual` и переустанавливаются при recreate.
 
 Полное практическое задание: [STUDENT.md](STUDENT.md). Топология и справочники:
 [docs/topology.md](docs/topology.md), [docs/accounts.md](docs/accounts.md),
-[docs/ports.md](docs/ports.md), [docs/upstream-software.md](docs/upstream-software.md).
+[docs/ports.md](docs/ports.md), [docs/mfa-gateways.md](docs/mfa-gateways.md),
+[docs/upstream-software.md](docs/upstream-software.md).
 
 Фактический `.env` содержит учебные пароли и не коммитится. Defaults из
 `.env.example` не являются production-практикой и должны быть заменены до

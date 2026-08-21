@@ -1,0 +1,67 @@
+# Copy to configuration.yml, review the LDAP mapping, then change one_factor to two_factor.
+server:
+  address: 'tcp://0.0.0.0:${MFA_AUTHELIA_PORT}/'
+  endpoints:
+    authz:
+      auth-request:
+        implementation: 'AuthRequest'
+
+log:
+  level: 'info'
+  file_path: '/state/authelia/authelia.log'
+  keep_stdout: false
+
+totp:
+  issuer: 'Virtual Bank ${MFA_GATEWAY_ROLE}'
+  period: 30
+  skew: 1
+
+authentication_backend:
+  password_reset:
+    disable: true
+  password_change:
+    disable: true
+  ldap:
+    address: 'ldap://${BANK_LDAP_IP}:${LDAP_PORT}'
+    implementation: 'custom'
+    timeout: '5s'
+    start_tls: false
+    base_dn: '${LDAP_BASE_DN}'
+    additional_users_dn: 'ou=People'
+    users_filter: '(&({username_attribute}={input})(objectClass=inetOrgPerson))'
+    additional_groups_dn: 'ou=Groups'
+    groups_filter: '(&(member={dn})(objectClass=groupOfNames))'
+    group_search_mode: 'filter'
+    user: '${MFA_LDAP_BIND_DN}'
+    attributes:
+      username: 'uid'
+      display_name: 'cn'
+      mail: 'mail'
+      group_name: 'cn'
+
+access_control:
+  default_policy: 'deny'
+  rules:
+    - domain: '${MFA_APP_DOMAIN}'
+      policy: 'one_factor' # STUDENT: change to two_factor.
+      subject:
+        - 'group:${MFA_ALLOWED_GROUP}'
+
+session:
+  name: '${MFA_SESSION_COOKIE_NAME}'
+  same_site: 'lax'
+  inactivity: '10m'
+  expiration: '1h'
+  cookies:
+    - domain: '${BANKLAB_DOMAIN}'
+      authelia_url: '${MFA_PUBLIC_AUTHELIA_URL}'
+      default_redirection_url: '${MFA_PUBLIC_APP_URL}'
+      name: '${MFA_SESSION_COOKIE_NAME}'
+
+storage:
+  local:
+    path: '/state/authelia/db.sqlite3'
+
+notifier:
+  filesystem:
+    filename: '/state/authelia/notification.txt'

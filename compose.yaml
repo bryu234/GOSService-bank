@@ -15,9 +15,13 @@ x-bank-hosts: &bank_hosts
   - "bank_vpn:${BANK_VPN_IP}"
   - "bank_proxy:${BANK_PROXY_IP}"
   - "dbo.bank.lab:${BANK_PROXY_IP}"
+  - "auth-dbo.bank.lab:${BANK_PROXY_IP}"
   - "bank_dbo_web:${BANK_DBO_IP}"
+  - "bank_mfa_dbo:${BANK_MFA_DBO_IP}"
   - "bank_abs:${BANK_ABS_IP}"
-  - "abs.bank.lab:${BANK_ABS_IP}"
+  - "bank_mfa_abs:${BANK_MFA_ABS_IP}"
+  - "abs.bank.lab:${BANK_MFA_ABS_IP}"
+  - "auth-abs.bank.lab:${BANK_MFA_ABS_IP}"
   - "bank_abs_db:${BANK_ABS_DB_IP}"
   - "bank_acc_sys:${BANK_ACC_SYS_IP}"
   - "accounting.bank.lab:${BANK_ACC_SYS_IP}"
@@ -134,7 +138,7 @@ services:
     extra_hosts: *bank_hosts
     depends_on:
       bank_router: {condition: service_healthy}
-      bank_dbo_web: {condition: service_healthy}
+      bank_mfa_dbo: {condition: service_healthy}
     networks:
       net_dmz: {ipv4_address: "${BANK_PROXY_IP}"}
     healthcheck:
@@ -142,6 +146,88 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+
+  bank_mfa_dbo:
+    <<: *common
+    image: banklab/mfa-gateway:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/mfa-gateway/Dockerfile
+      args:
+        AUTHELIA_VERSION: ${MFA_AUTHELIA_VERSION}
+    container_name: bank_mfa_dbo
+    hostname: bank_mfa_dbo
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_DMZ_IP}
+      MFA_GATEWAY_ROLE: dbo
+      MFA_APP_DOMAIN: ${MFA_DBO_APP_DOMAIN}
+      MFA_AUTH_DOMAIN: ${MFA_DBO_AUTH_DOMAIN}
+      MFA_PUBLIC_AUTHELIA_URL: https://${MFA_DBO_AUTH_DOMAIN}:${DBO_HOST_HTTPS_PORT}
+      MFA_PUBLIC_APP_URL: https://${MFA_DBO_APP_DOMAIN}:${DBO_HOST_HTTPS_PORT}
+      MFA_BACKEND_IP: ${BANK_DBO_IP}
+      MFA_BACKEND_PORT: ${DBO_APP_PORT}
+      MFA_ALLOWED_GROUP: dbo_read
+      MFA_LDAP_BIND_DN: uid=${SVC_DBO_USER},ou=Services,${LDAP_BASE_DN}
+      MFA_LDAP_BIND_PASSWORD: ${SVC_DBO_PASSWORD}
+      MFA_SESSION_COOKIE_NAME: bank_mfa_dbo_session
+      MFA_GATEWAY_TLS: "0"
+    volumes:
+      - bank_mfa_dbo_state:/state
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_ldap: {condition: service_healthy}
+      bank_dbo_web: {condition: service_healthy}
+    networks:
+      net_dmz: {ipv4_address: "${BANK_MFA_DBO_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t && nc -z 127.0.0.1 80 && nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+
+  bank_mfa_abs:
+    <<: *common
+    image: banklab/mfa-gateway:${BANKLAB_IMAGE_TAG:-1.0}
+    build:
+      context: .
+      dockerfile: services/mfa-gateway/Dockerfile
+      args:
+        AUTHELIA_VERSION: ${MFA_AUTHELIA_VERSION}
+    container_name: bank_mfa_abs
+    hostname: bank_mfa_abs
+    cap_add: [NET_ADMIN]
+    environment:
+      BANK_ROUTER_IP: ${ROUTER_SERVER_IP}
+      MFA_GATEWAY_ROLE: abs
+      MFA_APP_DOMAIN: ${MFA_ABS_APP_DOMAIN}
+      MFA_AUTH_DOMAIN: ${MFA_ABS_AUTH_DOMAIN}
+      MFA_PUBLIC_AUTHELIA_URL: https://${MFA_ABS_AUTH_DOMAIN}
+      MFA_PUBLIC_APP_URL: https://${MFA_ABS_APP_DOMAIN}
+      MFA_BACKEND_IP: ${BANK_ABS_IP}
+      MFA_BACKEND_PORT: ${ABS_APP_PORT}
+      MFA_ALLOWED_GROUP: abs_read
+      MFA_LDAP_BIND_DN: uid=${SVC_ABS_USER},ou=Services,${LDAP_BASE_DN}
+      MFA_LDAP_BIND_PASSWORD: ${SVC_ABS_PASSWORD}
+      MFA_SESSION_COOKIE_NAME: bank_mfa_abs_session
+      MFA_GATEWAY_TLS: "1"
+    volumes:
+      - bank_mfa_abs_state:/state
+    extra_hosts: *bank_hosts
+    depends_on:
+      bank_router: {condition: service_healthy}
+      bank_ldap: {condition: service_healthy}
+      bank_abs: {condition: service_healthy}
+    networks:
+      net_server: {ipv4_address: "${BANK_MFA_ABS_IP}"}
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t && nc -z 127.0.0.1 443 && nc -z 127.0.0.1 22"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
 
   bank_dbo_web:
     <<: *common
@@ -347,7 +433,7 @@ services:
     extra_hosts: *bank_hosts
     depends_on:
       bank_router: {condition: service_healthy}
-      bank_abs: {condition: service_healthy}
+      bank_mfa_abs: {condition: service_healthy}
     networks:
       net_vlan10_oper: {ipv4_address: "${BANK_ARM_OPER_IP}"}
     healthcheck: &arm_health
@@ -375,7 +461,7 @@ services:
     extra_hosts: *bank_hosts
     depends_on:
       bank_router: {condition: service_healthy}
-      bank_abs: {condition: service_healthy}
+      bank_mfa_abs: {condition: service_healthy}
       bank_acc_sys: {condition: service_healthy}
     networks:
       net_vlan20_cash: {ipv4_address: "${BANK_ARM_CASH_IP}"}
@@ -423,6 +509,7 @@ services:
     depends_on:
       bank_router: {condition: service_healthy}
       bank_pam: {condition: service_healthy}
+      bank_mfa_abs: {condition: service_healthy}
     networks:
       net_vlan40_it: {ipv4_address: "${BANK_ARM_IT_IP}"}
     healthcheck: *arm_health
@@ -468,6 +555,8 @@ volumes:
   bank_router_state:
   bank_vpn_state:
   bank_proxy_state:
+  bank_mfa_dbo_state:
+  bank_mfa_abs_state:
   bank_dbo_state:
   bank_abs_state:
   bank_abs_db_state:

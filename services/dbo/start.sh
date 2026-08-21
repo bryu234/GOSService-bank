@@ -9,9 +9,6 @@ banklab_start_support
 if [[ ! -x /state/venv/bin/python ]]; then
   python3 -m venv --system-site-packages /state/venv
 fi
-if [[ ! -e /state/mfa.py ]]; then
-  cp /opt/banklab/dbo/mfa_disabled.py /state/mfa.py
-fi
 install -d -m 0750 -o "$LAB_ADMIN_USER" -g "$LAB_ADMIN_USER" /state/audit
 banklab_finish_initialization
 export PYTHONPATH="/state/venv/lib/python3/dist-packages:/state:${PYTHONPATH:-}"

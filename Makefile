@@ -6,7 +6,7 @@ COMPOSE_BASE = docker compose --env-file $(ENV_FILE) -f compose.yaml
 COMPOSE_LOCAL = $(COMPOSE_BASE) -f compose.local.yaml
 COMPOSE_VM = $(COMPOSE_BASE) -f compose.vm.yaml
 
-.PHONY: help env vendor check-env check-ports check-network static-check preflight config config-local build-base build up up-local down ps logs restart access-info verify-start verify-persistence reset reset-local clean-all ssh-oper ssh-cash ssh-acc ssh-it
+.PHONY: help env vendor check-env check-ports check-network static-check preflight config config-local build-base build up up-local down ps logs restart access-info verify-start verify-target verify-persistence mfa-status mfa-validate-dbo mfa-validate-abs reset reset-local clean-all ssh-oper ssh-cash ssh-acc ssh-it
 
 help:
 	@echo "Virtual Bank Docker lab"
@@ -30,6 +30,10 @@ help:
 	@echo "  make logs                Follow logs"
 	@echo "  make access-info         Print SSH, xRDP, DBO and VPN endpoints"
 	@echo "  make verify-start        Verify the expected unsafe START state"
+	@echo "  make verify-target       Verify configured TARGET controls"
+	@echo "  make mfa-status          Show both MFA gateway states"
+	@echo "  make mfa-validate-dbo    Validate DBO MFA gateway configuration"
+	@echo "  make mfa-validate-abs    Validate ABS MFA gateway configuration"
 	@echo ""
 	@echo "Destructive operations:"
 	@echo "  CONFIRM=RESET make reset      Delete state and restore START on Ubuntu VM"
@@ -98,8 +102,21 @@ access-info: env
 verify-start: env
 	@bash tests/verify_start.sh "$(ENV_FILE)"
 
+verify-target: env
+	@bash tests/verify_target.sh "$(ENV_FILE)"
+
 verify-persistence: env
 	@bash tests/verify_persistence.sh "$(ENV_FILE)"
+
+mfa-status: env
+	@docker exec bank_mfa_dbo banklab-mfa-status
+	@docker exec bank_mfa_abs banklab-mfa-status
+
+mfa-validate-dbo: env
+	@docker exec bank_mfa_dbo banklab-mfa-validate
+
+mfa-validate-abs: env
+	@docker exec bank_mfa_abs banklab-mfa-validate
 
 ssh-oper: env
 	@set -a; source "$(ENV_FILE)"; set +a; ssh -p "$$ARM_OPER_HOST_SSH_PORT" "$$LAB_ADMIN_USER@127.0.0.1"

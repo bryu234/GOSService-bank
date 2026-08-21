@@ -2,7 +2,8 @@
 set -euo pipefail
 source /usr/local/lib/banklab-common.sh
 
-banklab_require LDAP_BASE_DN LDAP_ADMIN_DN LDAP_ADMIN_PASSWORD LDAP_ORGANIZATION
+banklab_require LDAP_BASE_DN LDAP_ADMIN_DN LDAP_ADMIN_PASSWORD LDAP_ORGANIZATION BANKLAB_DOMAIN \
+  OPER_USER CASH_USER ACC_USER IT_USER
 banklab_init_state bank_ldap
 banklab_start_support
 
@@ -52,6 +53,29 @@ EOF
   ldapmodify -Y EXTERNAL -H ldapi:/// -f /run/banklab-tls.ldif
   kill "$slapd_pid"
   wait "$slapd_pid" || true
+fi
+
+if [[ ! -e /state/.migration-mail-v1 ]]; then
+  slapd -h 'ldap://127.0.0.1:389/ ldapi:///' -u openldap -g openldap -d 256 >/run/slapd-mail-migration.log 2>&1 &
+  slapd_pid=$!
+  for _ in {1..30}; do ldapwhoami -x -H ldap://127.0.0.1 >/dev/null 2>&1 && break; sleep 1; done
+  for uid in "$OPER_USER" "$CASH_USER" "$ACC_USER" "$IT_USER"; do
+    dn="uid=$uid,ou=People,$LDAP_BASE_DN"
+    if ! ldapsearch -LLL -x -H ldap://127.0.0.1 -D "$LDAP_ADMIN_DN" -w "$LDAP_ADMIN_PASSWORD" \
+      -b "$dn" -s base mail 2>/dev/null | grep -q '^mail: '; then
+      cat >/run/banklab-mail.ldif <<EOF
+dn: $dn
+changetype: modify
+add: mail
+mail: $uid@$BANKLAB_DOMAIN
+EOF
+      ldapmodify -x -H ldap://127.0.0.1 -D "$LDAP_ADMIN_DN" -w "$LDAP_ADMIN_PASSWORD" \
+        -f /run/banklab-mail.ldif
+    fi
+  done
+  kill "$slapd_pid"
+  wait "$slapd_pid" || true
+  touch /state/.migration-mail-v1
 fi
 
 banklab_finish_initialization

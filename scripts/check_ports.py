@@ -47,14 +47,28 @@ def project_bindings(project: str) -> set[tuple[str, int]]:
 
 
 def lsof_reports_listener(port: int, protocol: str) -> bool:
-    selector = f"-iUDP:{port}" if protocol == "udp" else f"-iTCP:{port}"
-    command = ["lsof", "-nP", selector]
-    if protocol == "tcp":
-        command.append("-sTCP:LISTEN")
     try:
-        return subprocess.run(
-            command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
-        ).returncode == 0
+        if protocol == "tcp":
+            command = ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN"]
+            return subprocess.run(
+                command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
+            ).returncode == 0
+        # `lsof -iUDP:<port>` also matches sockets connected to a remote port
+        # with that number. Inspect the local endpoint instead, otherwise an
+        # OpenVPN client connected to remote UDP/1194 blocks the lab preflight.
+        output = subprocess.run(
+            ["lsof", "-nP", "-iUDP", "-F", "n"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            check=False,
+        ).stdout
+        suffix = f":{port}"
+        return any(
+            line[1:].split("->", 1)[0].endswith(suffix)
+            for line in output.splitlines()
+            if line.startswith("n")
+        )
     except FileNotFoundError:
         return True
 

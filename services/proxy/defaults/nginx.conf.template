@@ -9,7 +9,7 @@ http {
 
   server {
     listen ${PROXY_HTTP_PORT};
-    server_name ${PROXY_SERVER_NAME};
+    server_name ${PROXY_SERVER_NAME} ${MFA_DBO_AUTH_DOMAIN};
     return 301 https://$host:${DBO_HOST_HTTPS_PORT}$request_uri;
   }
 
@@ -21,11 +21,27 @@ http {
     ssl_protocols TLSv1.2 TLSv1.3;
 
     location / {
-      proxy_set_header Host $host;
+      proxy_set_header Host $http_host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Host $http_host;
       proxy_set_header X-Forwarded-Proto https;
-      proxy_pass http://${BANK_DBO_IP}:${DBO_APP_PORT};
+      proxy_pass http://${BANK_MFA_DBO_IP}:80;
+    }
+  }
+
+  server {
+    listen ${PROXY_HTTPS_PORT} ssl;
+    server_name ${MFA_DBO_AUTH_DOMAIN};
+    ssl_certificate /state/tls/server.crt;
+    ssl_certificate_key /state/tls/server.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    location / {
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_pass http://${BANK_MFA_DBO_IP}:${MFA_AUTHELIA_PORT};
     }
   }
 }

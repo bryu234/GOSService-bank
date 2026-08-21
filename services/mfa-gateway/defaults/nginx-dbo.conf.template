@@ -1,0 +1,38 @@
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+events { worker_connections 1024; }
+
+http {
+  access_log /state/nginx/access.log;
+  error_log /state/nginx/error.log;
+
+  server {
+    listen 80;
+    server_name ${MFA_APP_DOMAIN};
+
+    location = /internal/authelia/authz {
+      internal;
+      proxy_pass http://127.0.0.1:${MFA_AUTHELIA_PORT}/api/authz/auth-request;
+      proxy_pass_request_body off;
+      proxy_set_header Content-Length "";
+      proxy_set_header X-Original-Method $request_method;
+      proxy_set_header X-Original-URL $scheme://$http_host$request_uri;
+      proxy_set_header X-Forwarded-Method $request_method;
+      proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+      proxy_set_header X-Forwarded-Host $http_host;
+      proxy_set_header X-Forwarded-URI $request_uri;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location / {
+      # STUDENT: uncomment the next line after configuring Authelia.
+      # include /state/nginx/snippets/authelia-authrequest.conf;
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+      proxy_pass http://${MFA_BACKEND_IP}:${MFA_BACKEND_PORT};
+    }
+  }
+}
