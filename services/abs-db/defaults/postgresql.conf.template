@@ -1,5 +1,6 @@
 listen_addresses = '*'
 port = ${ABS_DB_PORT}
+data_directory = '/var/lib/postgresql/16/main'
 max_connections = 100
 shared_buffers = 128MB
 password_encryption = 'scram-sha-256'

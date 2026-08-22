@@ -23,6 +23,7 @@ if [[ ! -e /state/postgresql/postgresql.conf ]]; then
   cat >/state/postgresql/postgresql.conf <<'EOF'
 listen_addresses = '127.0.0.1'
 port = 5432
+data_directory = '/var/lib/postgresql/16/main'
 max_connections = 100
 shared_buffers = 128MB
 logging_collector = on
