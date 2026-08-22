@@ -41,21 +41,57 @@ sudo nano /etc/nginx/nginx.conf
 include /etc/nginx/snippets/authelia-authrequest.conf;
 ```
 
-Проверка и включение:
+Включение:
 
 ```bash
-sudo banklab-mfa-validate
 sudo banklab-mfa-enable
-sudo banklab-mfa-status
 ```
 
-Ожидаемое состояние после включения:
+Команда `banklab-mfa-enable` выполняет четыре действия:
 
-```text
-persistent: enabled
-authelia: running
-nginx auth_request: enabled
-```
+- проверяет конфигурации Authelia и nginx;
+- запускает Authelia с подготовленными переменными окружения;
+- перезагружает nginx;
+- сохраняет включение MFA после restart, recreate и перезагрузки VM.
+
+Команда не создаёт конфигурацию и не выбирает LDAP-группы за студента. Она
+только применяет уже подготовленный результат.
+
+Если не использовать `banklab-mfa-enable`, выполните её действия вручную:
+
+1. Проверьте штатными средствами обе конфигурации:
+
+   ```bash
+   sudo authelia config validate --config /etc/authelia/configuration.yml
+   sudo nginx -t
+   ```
+
+2. Запустите Authelia с подготовленными переменными окружения:
+
+   ```bash
+   sudo bash -c '
+   set -a
+   . /etc/authelia/runtime.env
+   set +a
+   nohup authelia --config /etc/authelia/configuration.yml \
+     >>/var/log/authelia/authelia.log 2>&1 &
+   '
+   ```
+
+3. Настройте автоматический запуск Authelia после перезапуска машины. Без этого
+   MFA будет работать только до следующего restart или recreate.
+
+4. Примените конфигурацию nginx:
+
+   ```bash
+   sudo nginx -s reload
+   ```
+
+5. Убедитесь, что процесс запущен и защищённый адрес открывает страницу MFA:
+
+   ```bash
+   pgrep -af authelia
+   ```
 
 Конфигурация и включённое состояние сохраняются после restart, recreate и
 перезагрузки VM.

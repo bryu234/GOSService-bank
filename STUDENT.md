@@ -51,12 +51,14 @@ sudo nft -f /etc/nftables.conf
 sudo cp /etc/authelia/configuration.yml.example /etc/authelia/configuration.yml
 sudo nano /etc/authelia/configuration.yml
 sudo nano /etc/nginx/nginx.conf
-sudo banklab-mfa-validate
 sudo banklab-mfa-enable
-sudo banklab-mfa-status
 ```
 
-Подробный порядок и контрольные сценарии: [docs/mfa-gateways.md](docs/mfa-gateways.md).
+`banklab-mfa-enable` проверяет подготовленные конфигурации, запускает Authelia,
+перезагружает nginx и сохраняет включение MFA после перезапуска машины. Если не
+использовать эту команду, все эти действия и автозапуск Authelia студент должен
+настроить вручную. Полный ручной порядок приведён в
+[docs/mfa-gateways.md](docs/mfa-gateways.md).
 
 ## Что приложить к сдаче
 
