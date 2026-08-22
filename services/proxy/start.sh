@@ -6,7 +6,7 @@ banklab_require BANK_MFA_DBO_IP PROXY_SERVER_NAME MFA_DBO_AUTH_DOMAIN MFA_AUTHEL
 banklab_init_state bank_proxy
 banklab_start_support
 
-install -d -m 0755 /state/nginx /state/tls
+install -d -m 0755 /state/nginx /state/nginx/log /state/tls /etc/ssl/certs /etc/ssl/private
 if [[ ! -s /state/nginx/nginx.conf ]]; then
   envsubst '${PROXY_HTTP_PORT} ${PROXY_HTTPS_PORT} ${PROXY_SERVER_NAME} ${BANK_MFA_DBO_IP} ${MFA_DBO_AUTH_DOMAIN} ${MFA_AUTHELIA_PORT} ${DBO_HOST_HTTPS_PORT}' \
     </defaults/nginx.conf.template >/state/nginx/nginx.conf
@@ -28,6 +28,10 @@ if [[ ! -s /state/tls/server.crt ]] || ! openssl x509 -in /state/tls/server.crt 
     -keyout /state/tls/server.key -out /state/tls/server.crt
   chmod 0600 /state/tls/server.key
 fi
+ln -sfn /state/tls/server.crt /etc/ssl/certs/banklab-proxy.crt
+ln -sfn /state/tls/server.key /etc/ssl/private/banklab-proxy.key
+rm -rf /var/log/nginx
+ln -sfn /state/nginx/log /var/log/nginx
 ln -sfn /state/nginx/nginx.conf /etc/nginx/nginx.conf
 nginx -t
 banklab_finish_initialization

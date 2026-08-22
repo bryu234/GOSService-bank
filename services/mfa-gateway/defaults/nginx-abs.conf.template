@@ -4,8 +4,8 @@ pid /run/nginx.pid;
 events { worker_connections 1024; }
 
 http {
-  access_log /state/nginx/access.log;
-  error_log /state/nginx/error.log;
+  access_log /var/log/nginx/access.log;
+  error_log /var/log/nginx/error.log;
 
   server {
     listen 80;
@@ -16,8 +16,8 @@ http {
   server {
     listen 443 ssl;
     server_name ${MFA_APP_DOMAIN};
-    ssl_certificate /state/tls/server.crt;
-    ssl_certificate_key /state/tls/server.key;
+    ssl_certificate /etc/ssl/certs/banklab-mfa.crt;
+    ssl_certificate_key /etc/ssl/private/banklab-mfa.key;
     ssl_protocols TLSv1.2 TLSv1.3;
 
     location = /internal/authelia/authz {
@@ -36,7 +36,7 @@ http {
 
     location / {
       # STUDENT: uncomment the next line after configuring Authelia.
-      # include /state/nginx/snippets/authelia-authrequest.conf;
+      # include /etc/nginx/snippets/authelia-authrequest.conf;
       proxy_set_header Host $host;
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -48,8 +48,8 @@ http {
   server {
     listen 443 ssl;
     server_name ${MFA_AUTH_DOMAIN};
-    ssl_certificate /state/tls/server.crt;
-    ssl_certificate_key /state/tls/server.key;
+    ssl_certificate /etc/ssl/certs/banklab-mfa.crt;
+    ssl_certificate_key /etc/ssl/private/banklab-mfa.key;
     ssl_protocols TLSv1.2 TLSv1.3;
 
     location / {

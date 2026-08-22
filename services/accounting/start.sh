@@ -10,20 +10,23 @@ banklab_start_support
 pgdata=/var/lib/postgresql/16/main
 install -d -m 0700 -o postgres -g postgres "$pgdata"
 install -d -m 0750 -o www-data -g www-data /state/dolibarr /state/apache /var/lib/dolibarr/documents
-install -d -m 0750 -o postgres -g postgres /state/postgresql
+install -d -m 0750 -o postgres -g postgres /state/postgresql /state/postgresql/log
+install -d -m 0755 /etc/postgresql/16/main /var/www
+rm -rf /var/www/dolibarr
+ln -sfn /state/dolibarr /var/www/dolibarr
 
 if [[ ! -s "$pgdata/PG_VERSION" ]]; then
   runuser -u postgres -- /usr/lib/postgresql/16/bin/initdb -D "$pgdata" --auth-local=trust --auth-host=scram-sha-256
 fi
 
-if [[ ! -e /state/postgresql.conf ]]; then
-  cat >/state/postgresql.conf <<'EOF'
+if [[ ! -e /state/postgresql/postgresql.conf ]]; then
+  cat >/state/postgresql/postgresql.conf <<'EOF'
 listen_addresses = '127.0.0.1'
 port = 5432
 max_connections = 100
 shared_buffers = 128MB
 logging_collector = on
-log_directory = '/state/postgresql'
+log_directory = '/var/log/postgresql'
 log_filename = 'postgresql.log'
 EOF
 fi
@@ -34,9 +37,13 @@ host all all 127.0.0.1/32 scram-sha-256
 host all all ::1/128 scram-sha-256
 EOF
 fi
-chown postgres:postgres /state/postgresql.conf /state/postgresql/pg_hba.conf "$pgdata"
+chown -R postgres:postgres /state/postgresql "$pgdata"
+ln -sfn /state/postgresql/postgresql.conf /etc/postgresql/16/main/postgresql.conf
+ln -sfn /state/postgresql/pg_hba.conf /etc/postgresql/16/main/pg_hba.conf
+rm -rf /var/log/postgresql
+ln -sfn /state/postgresql/log /var/log/postgresql
 
-pg_args=(-D "$pgdata" -o "-c config_file=/state/postgresql.conf -c hba_file=/state/postgresql/pg_hba.conf")
+pg_args=(-D "$pgdata" -o "-c config_file=/etc/postgresql/16/main/postgresql.conf -c hba_file=/etc/postgresql/16/main/pg_hba.conf")
 runuser -u postgres -- /usr/lib/postgresql/16/bin/pg_ctl "${pg_args[@]}" -w start
 
 if [[ -e /state/.first-boot ]]; then
@@ -62,16 +69,16 @@ if [[ ! -e /state/.dolibarr-installed ]]; then
   # container recreation resumes safely after an interrupted first boot.
   install -d -m 0750 -o www-data -g www-data /state/dolibarr/htdocs/conf
   install -m 0660 -o www-data -g www-data /dev/null /state/dolibarr/htdocs/conf/conf.php
-  cd /state/dolibarr/htdocs/install
+  cd /var/www/dolibarr/htdocs/install
   runuser -u www-data -- php step1.php set ru_RU \
-    /state/dolibarr/htdocs /var/lib/dolibarr/documents \
+    /var/www/dolibarr/htdocs /var/lib/dolibarr/documents \
     "http://accounting.bank.lab:${ACC_APP_PORT}" postgres '' pgsql 127.0.0.1 \
     "$ACC_DB_NAME" "$ACC_DB_USER" "$ACC_DB_PASSWORD" 5432 llx_ 0 0
   runuser -u www-data -- php step2.php set ru_RU
   runuser -u www-data -- php step5.php '' '' ru_RU set \
     "$ACC_ADMIN_USER" "$ACC_ADMIN_PASSWORD" "$ACC_ADMIN_PASSWORD" 1
 
-  conf=/state/dolibarr/htdocs/conf/conf.php
+  conf=/var/www/dolibarr/htdocs/conf/conf.php
   sed -i "s/\$dolibarr_main_authentication='dolibarr';/\$dolibarr_main_authentication='ldap,dolibarr';/" "$conf"
   cat >>"$conf" <<'PHP'
 
@@ -94,7 +101,7 @@ fi
 # Dolibarr 23 uses the single-argument ldap_connect() form on PHP 8.3+, so a
 # persisted host must be a full LDAP URI.  Migrate configurations created by
 # earlier lab images before Apache starts.
-conf=/state/dolibarr/htdocs/conf/conf.php
+conf=/var/www/dolibarr/htdocs/conf/conf.php
 sed -i "s#^\$dolibarr_main_auth_ldap_host=getenv('BANK_LDAP_IP');#\$dolibarr_main_auth_ldap_host='ldap://'.getenv('BANK_LDAP_IP');#" "$conf"
 
 # Complete the minimum company profile required by Dolibarr before users are
@@ -113,7 +120,8 @@ WHERE NOT EXISTS (SELECT 1 FROM llx_const WHERE entity = 1 AND name = 'MAIN_MONN
 SQL
 
 envsubst </defaults/accounting-apache.conf.template >/state/apache/accounting.conf
-ln -sf /state/apache/accounting.conf /etc/apache2/sites-enabled/000-default.conf
+ln -sfn /state/apache/accounting.conf /etc/apache2/sites-available/accounting.conf
+ln -sfn ../sites-available/accounting.conf /etc/apache2/sites-enabled/000-default.conf
 
 /usr/local/bin/bank-accounting-sync-ldap || true
 (

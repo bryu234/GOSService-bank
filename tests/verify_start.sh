@@ -24,9 +24,9 @@ pass "router START forwarding is permissive"
 
 for port in "$ARM_OPER_HOST_SSH_PORT" "$ARM_CASH_HOST_SSH_PORT" "$ARM_ACC_HOST_SSH_PORT" "$ARM_IT_HOST_SSH_PORT" \
             "$ARM_OPER_HOST_RDP_PORT" "$ARM_CASH_HOST_RDP_PORT" "$ARM_ACC_HOST_RDP_PORT" "$ARM_IT_HOST_RDP_PORT"; do
-  docker port bank_router "${port}/tcp" | grep -q ":${port}$" || fail "router does not publish ARM port $port"
+  docker port bank_router "${port}/tcp" | grep ":${port}$" >/dev/null || fail "router does not publish ARM port $port"
   docker exec bank_router nft -n list chain ip banklab_nat prerouting | \
-    grep -q "tcp dport ${port} dnat" || fail "router is missing DNAT for ARM port $port"
+    grep "tcp dport ${port} dnat" >/dev/null || fail "router is missing DNAT for ARM port $port"
 done
 pass "router publishes and DNATs all 8 ARM access ports"
 
@@ -58,24 +58,24 @@ docker exec bank_arm_it nc -z -w 3 bank_pam "$SSH_PORT"
 docker exec bank_arm_cash nc -z -w 3 bank_abs_db "$ABS_DB_PORT"
 pass "START has working clients and intentionally broad network access"
 
-docker exec bank_proxy sh -ec 'grep -q "proxy_pass http://${BANK_MFA_DBO_IP}" /state/nginx/nginx.conf; ! grep -q "bank_abs\|${BANK_ABS_IP}" /state/nginx/nginx.conf'
+docker exec bank_proxy sh -ec 'grep -q "proxy_pass http://${BANK_MFA_DBO_IP}" /etc/nginx/nginx.conf; ! grep -q "bank_abs\|${BANK_ABS_IP}" /etc/nginx/nginx.conf'
 docker exec bank_proxy curl -fsS -H 'Host: dbo.bank.lab' -H 'X-Forwarded-Proto: https' http://bank_mfa_dbo/ >/dev/null
 docker exec bank_mfa_dbo sh -ec 'banklab-mfa-status | grep -q "persistent: START bypass"; banklab-mfa-status | grep -q "authelia: stopped"; banklab-mfa-status | grep -q "nginx auth_request: disabled"'
 docker exec bank_mfa_abs sh -ec 'banklab-mfa-status | grep -q "persistent: START bypass"; banklab-mfa-status | grep -q "authelia: stopped"; banklab-mfa-status | grep -q "nginx auth_request: disabled"'
-docker exec bank_pam sh -ec '! grep -q pam_google_authenticator /state/pam/sshd'
+docker exec bank_pam sh -ec '! grep -q pam_google_authenticator /etc/pam.d/sshd'
 pass "both MFA gateways are present, separate and intentionally bypassed in START"
 
 for uid in "$OPER_USER" "$CASH_USER" "$ACC_USER" "$IT_USER"; do
   docker exec bank_ldap ldapsearch -LLL -x -H ldap://127.0.0.1 \
     -D "$LDAP_ADMIN_DN" -w "$LDAP_ADMIN_PASSWORD" \
-    -b "uid=$uid,ou=People,$LDAP_BASE_DN" -s base mail 2>/dev/null | grep -q "^mail: ${uid}@${BANKLAB_DOMAIN}$" || \
+    -b "uid=$uid,ou=People,$LDAP_BASE_DN" -s base mail 2>/dev/null | grep "^mail: ${uid}@${BANKLAB_DOMAIN}$" >/dev/null || \
     fail "LDAP mail attribute is missing for $uid"
 done
 pass "LDAP users have mail attributes required by MFA enrollment"
 
 docker exec -e PGPASSWORD="$ACC_DB_PASSWORD" bank_acc_sys \
   psql -h 127.0.0.1 -U "$ACC_DB_USER" -d "$ACC_DB_NAME" \
-  -tAc "select 1 where exists (select from llx_usergroup where nom='acc_read') and exists (select from llx_const where entity=1 and name='MAIN_INFO_SOCIETE_NOM' and value <> '') and exists (select from llx_const where entity=1 and name='MAIN_INFO_SOCIETE_COUNTRY' and value <> '')" | grep -q 1 || \
+  -tAc "select 1 where exists (select from llx_usergroup where nom='acc_read') and exists (select from llx_const where entity=1 and name='MAIN_INFO_SOCIETE_NOM' and value <> '') and exists (select from llx_const where entity=1 and name='MAIN_INFO_SOCIETE_COUNTRY' and value <> '')" | grep 1 >/dev/null || \
   fail "Dolibarr is missing its company profile or LDAP-derived acc_read group"
 pass "Dolibarr is initialized with LDAP-derived accounting groups"
 

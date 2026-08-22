@@ -42,6 +42,7 @@ make up-local           # bind 127.0.0.1
 make ps
 make access-info
 make verify-start
+make verify-student-interface
 make verify-persistence
 make down               # volumes сохраняются
 ```
@@ -53,13 +54,14 @@ CONFIRM=RESET make reset        # Ubuntu VM: удалить volumes и сраз�
 CONFIRM=RESET make reset-local  # локальный профиль
 ```
 
-## Где студент меняет состояние
+## Работа внутри машин
 
-Каждая машина содержит `/state/STUDENT_TASK.md`. Изменяемые firewall, routes,
-SSH/PAM/MFA-конфиги и журналы находятся в `/state` и named volumes. После
-изменения runtime firewall выполните `sudo banklab-save-firewall`; после
-изменения маршрутов — `sudo banklab-save-routes`. APT-пакеты автоматически
-фиксируются в `/state/packages.manual` и переустанавливаются при recreate.
+Студент работает как с обычной Linux-инфраструктурой: конфигурация находится в
+`/etc`, данные приложений — в `/var/lib` и `/var/www`, журналы — в `/var/log`.
+Для применения используются штатные команды `nft`, `sshd`, `nginx`, OpenVPN,
+PostgreSQL и LDAP. Docker и внутренний механизм сохранения студенту не нужны.
+Установленные через APT пакеты и изменённые конфигурации восстанавливаются после
+restart, recreate и перезагрузки VM.
 
 Полное практическое задание: [STUDENT.md](STUDENT.md). Топология и справочники:
 [docs/topology.md](docs/topology.md), [docs/accounts.md](docs/accounts.md),

@@ -2,11 +2,11 @@ Listen ${ACC_APP_PORT}
 ServerName accounting.bank.lab
 
 <VirtualHost *:${ACC_APP_PORT}>
-    DocumentRoot /state/dolibarr/htdocs
-    ErrorLog /state/apache/error.log
-    CustomLog /state/apache/access.log combined
+    DocumentRoot /var/www/dolibarr/htdocs
+    ErrorLog /var/log/apache2/accounting-error.log
+    CustomLog /var/log/apache2/accounting-access.log combined
 
-    <Directory /state/dolibarr/htdocs>
+    <Directory /var/www/dolibarr/htdocs>
         Options FollowSymLinks
         AllowOverride All
         Require all granted

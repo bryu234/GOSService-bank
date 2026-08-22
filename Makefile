@@ -6,7 +6,7 @@ COMPOSE_BASE = docker compose --env-file $(ENV_FILE) -f compose.yaml
 COMPOSE_LOCAL = $(COMPOSE_BASE) -f compose.local.yaml
 COMPOSE_VM = $(COMPOSE_BASE) -f compose.vm.yaml
 
-.PHONY: help env vendor check-env check-ports check-network static-check preflight config config-local build-base build up up-local down ps logs restart access-info verify-start verify-target verify-persistence mfa-status mfa-validate-dbo mfa-validate-abs reset reset-local clean-all ssh-oper ssh-cash ssh-acc ssh-it
+.PHONY: help env vendor check-env check-ports check-network static-check preflight config config-local build-base build up up-local down ps logs restart access-info verify-start verify-target verify-persistence verify-student-interface mfa-status mfa-validate-dbo mfa-validate-abs reset reset-local clean-all ssh-oper ssh-cash ssh-acc ssh-it
 
 help:
 	@echo "Virtual Bank Docker lab"
@@ -31,6 +31,7 @@ help:
 	@echo "  make access-info         Print SSH, xRDP, DBO and VPN endpoints"
 	@echo "  make verify-start        Verify the expected unsafe START state"
 	@echo "  make verify-target       Verify configured TARGET controls"
+	@echo "  make verify-student-interface Verify production-style paths shown to students"
 	@echo "  make mfa-status          Show both MFA gateway states"
 	@echo "  make mfa-validate-dbo    Validate DBO MFA gateway configuration"
 	@echo "  make mfa-validate-abs    Validate ABS MFA gateway configuration"
@@ -107,6 +108,9 @@ verify-target: env
 
 verify-persistence: env
 	@bash tests/verify_persistence.sh "$(ENV_FILE)"
+
+verify-student-interface: env
+	@bash tests/verify_student_interface.sh "$(ENV_FILE)"
 
 mfa-status: env
 	@docker exec bank_mfa_dbo banklab-mfa-status

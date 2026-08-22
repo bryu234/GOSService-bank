@@ -6,6 +6,9 @@ banklab_require LDAP_BASE_DN LDAP_ADMIN_DN LDAP_ADMIN_PASSWORD LDAP_ORGANIZATION
   OPER_USER CASH_USER ACC_USER IT_USER
 banklab_init_state bank_ldap
 banklab_start_support
+install -d -m 0750 -o openldap -g openldap /state/tls
+rm -rf /etc/ldap/tls
+ln -sfn /state/tls /etc/ldap/tls
 
 if [[ -e /state/.first-boot ]]; then
   ldap_domain="$(python3 - "$LDAP_BASE_DN" <<'PY'
@@ -26,7 +29,6 @@ PY
   rm -rf /etc/ldap/slapd.d/* /var/lib/ldap/*
   DEBIAN_FRONTEND=noninteractive dpkg-reconfigure slapd
 
-  install -d -m 0750 -o openldap -g openldap /state/tls
   openssl req -x509 -newkey rsa:3072 -nodes -days 1825 -subj '/CN=bank_ldap' \
     -addext 'subjectAltName=DNS:bank_ldap,DNS:ldap.bank.lab' \
     -keyout /state/tls/ldap.key -out /state/tls/ldap.crt
@@ -45,10 +47,10 @@ PY
 dn: cn=config
 changetype: modify
 replace: olcTLSCertificateFile
-olcTLSCertificateFile: /state/tls/ldap.crt
+olcTLSCertificateFile: /etc/ldap/tls/ldap.crt
 -
 replace: olcTLSCertificateKeyFile
-olcTLSCertificateKeyFile: /state/tls/ldap.key
+olcTLSCertificateKeyFile: /etc/ldap/tls/ldap.key
 EOF
   ldapmodify -Y EXTERNAL -H ldapi:/// -f /run/banklab-tls.ldif
   kill "$slapd_pid"

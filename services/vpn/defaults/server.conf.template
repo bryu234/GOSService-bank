@@ -3,12 +3,12 @@ proto udp
 dev tun
 topology subnet
 server ${VPN_NETWORK} ${VPN_NETMASK}
-ca /state/openvpn/ca.crt
-cert /state/openvpn/server.crt
-key /state/openvpn/server.key
+ca /etc/openvpn/server/ca.crt
+cert /etc/openvpn/server/server.crt
+key /etc/openvpn/server/server.key
 dh none
 ecdh-curve prime256v1
-tls-crypt /state/openvpn/tls-crypt.key
+tls-crypt /etc/openvpn/server/tls-crypt.key
 verify-client-cert require
 script-security 3
 auth-user-pass-verify /usr/local/libexec/bank-vpn-ldap-auth via-file
@@ -29,5 +29,5 @@ persist-key
 persist-tun
 user nobody
 group nogroup
-status /state/openvpn/status.log
+status /var/log/openvpn/status.log
 verb 3

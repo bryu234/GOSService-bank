@@ -15,7 +15,6 @@ banklab_init_state() {
   install -d -m 0755 "$BANKLAB_STATE_DIR" "$BANKLAB_STATE_DIR/ssh"
   if [[ ! -e "$BANKLAB_STATE_DIR/.initialized" ]]; then
     printf '%s\n' "$service" >"$BANKLAB_STATE_DIR/service"
-    cp /usr/share/banklab/STUDENT_TASK.md "$BANKLAB_STATE_DIR/STUDENT_TASK.md"
     touch "$BANKLAB_STATE_DIR/.first-boot"
   fi
 }

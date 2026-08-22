@@ -17,8 +17,6 @@ COPY images/ubuntu-base/banklab-record-packages /usr/local/sbin/banklab-record-p
 COPY images/ubuntu-base/banklab-save-routes /usr/local/sbin/banklab-save-routes
 COPY images/ubuntu-base/banklab-save-firewall /usr/local/sbin/banklab-save-firewall
 COPY images/ubuntu-base/99banklab-persist /etc/apt/apt.conf.d/99banklab-persist
-COPY images/ubuntu-base/STUDENT_TASK.md /usr/share/banklab/STUDENT_TASK.md
-
 RUN chmod 0755 /usr/local/lib/banklab-common.sh /usr/local/sbin/banklab-* && \
     printf '%s\n' 'table inet banklab_host {' ' chain input { type filter hook input priority 0; policy accept; }' ' chain forward { type filter hook forward priority 0; policy accept; }' ' chain output { type filter hook output priority 0; policy accept; }' '}' >/usr/share/banklab/default-nftables.conf
 

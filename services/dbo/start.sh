@@ -10,7 +10,10 @@ if [[ ! -x /state/venv/bin/python ]]; then
   python3 -m venv --system-site-packages /state/venv
 fi
 install -d -m 0750 -o "$LAB_ADMIN_USER" -g "$LAB_ADMIN_USER" /state/audit
+rm -rf /opt/banklab/venv /var/log/bank-dbo
+ln -sfn /state/venv /opt/banklab/venv
+ln -sfn /state/audit /var/log/bank-dbo
 banklab_finish_initialization
-export PYTHONPATH="/state/venv/lib/python3/dist-packages:/state:${PYTHONPATH:-}"
+export PYTHONPATH="/opt/banklab/venv/lib/python3/dist-packages:/opt/banklab/dbo:${PYTHONPATH:-}"
 cd /opt/banklab/dbo
-exec /state/venv/bin/python -m gunicorn --bind "0.0.0.0:${DBO_APP_PORT}" --workers 2 --access-logfile /state/audit/access.log app:app
+exec /opt/banklab/venv/bin/python -m gunicorn --bind "0.0.0.0:${DBO_APP_PORT}" --workers 2 --access-logfile /var/log/bank-dbo/access.log app:app

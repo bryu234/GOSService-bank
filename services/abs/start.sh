@@ -19,10 +19,13 @@ if [[ ! -e /state/.migration-web-mfa-gateway-v1 ]]; then
   sed -i '/bac\.mfa_middleware\.BankLabMfaMiddleware/d' /state/app/bac/settings.py
   touch /state/.migration-web-mfa-gateway-v1
 fi
+rm -rf /opt/banklab/abs-live /opt/banklab/venv
+ln -sfn /state/app /opt/banklab/abs-live
+ln -sfn /state/venv /opt/banklab/venv
 
-cd /state/app
-/state/venv/bin/python manage.py migrate --noinput
-/state/venv/bin/python manage.py seed_banklab
-/state/venv/bin/python manage.py collectstatic --noinput >/dev/null
+cd /opt/banklab/abs-live
+/opt/banklab/venv/bin/python manage.py migrate --noinput
+/opt/banklab/venv/bin/python manage.py seed_banklab
+/opt/banklab/venv/bin/python manage.py collectstatic --noinput >/dev/null
 banklab_finish_initialization
-exec /state/venv/bin/gunicorn --bind "0.0.0.0:${ABS_APP_PORT}" --workers 2 bac.wsgi:application
+exec /opt/banklab/venv/bin/gunicorn --bind "0.0.0.0:${ABS_APP_PORT}" --workers 2 bac.wsgi:application

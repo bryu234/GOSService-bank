@@ -7,7 +7,11 @@ banklab_init_state bank_vpn
 banklab_start_support
 
 vpn_dir=/state/openvpn
-install -d -m 0700 "$vpn_dir"
+install -d -m 0700 "$vpn_dir" "$vpn_dir/log"
+install -d -m 0755 /etc/openvpn /etc/openvpn/client /var/log/openvpn
+rm -rf /etc/openvpn/server
+ln -sfn "$vpn_dir" /etc/openvpn/server
+ln -sfn "$vpn_dir/log/status.log" /var/log/openvpn/status.log
 if [[ ! -s "$vpn_dir/ca.crt" ]]; then
   openssl req -x509 -newkey rsa:3072 -nodes -days 3650 -subj '/CN=Bank Lab VPN CA' \
     -keyout "$vpn_dir/ca.key" -out "$vpn_dir/ca.crt"
@@ -119,6 +123,7 @@ $(cat "$vpn_dir/tls-crypt.key")
 EOF
   chmod 0600 "$vpn_dir/client.ovpn"
 fi
+ln -sfn "$vpn_dir/client.ovpn" /etc/openvpn/client/banklab-client.ovpn
 
 banklab_finish_initialization
-exec openvpn --config "$vpn_dir/server.conf"
+exec openvpn --config /etc/openvpn/server/server.conf

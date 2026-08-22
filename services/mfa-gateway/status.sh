@@ -11,7 +11,7 @@ if [[ -s /run/authelia.pid ]] && kill -0 "$(cat /run/authelia.pid)" 2>/dev/null;
 else
   echo "authelia: stopped"
 fi
-if grep -Eq '^[[:space:]]*include[[:space:]]+/state/nginx/snippets/authelia-authrequest\.conf;' /state/nginx/nginx.conf; then
+if grep -Eq '^[[:space:]]*include[[:space:]]+/etc/nginx/snippets/authelia-authrequest\.conf;' /etc/nginx/nginx.conf; then
   echo "nginx auth_request: enabled"
 else
   echo "nginx auth_request: disabled"

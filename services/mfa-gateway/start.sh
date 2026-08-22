@@ -15,8 +15,14 @@ esac
 banklab_init_state "bank_mfa_${MFA_GATEWAY_ROLE}"
 banklab_start_support
 
-install -d -m 0755 /state/nginx/snippets /state/tls
+install -d -m 0755 /state/nginx/snippets /state/nginx/log /state/tls \
+  /etc/nginx/snippets /etc/ssl/certs /etc/ssl/private
 install -d -m 0700 /state/authelia /state/authelia/secrets
+rm -rf /etc/authelia /var/lib/authelia /var/log/authelia /var/log/nginx
+ln -sfn /state/authelia /etc/authelia
+ln -sfn /state/authelia /var/lib/authelia
+ln -sfn /state/authelia /var/log/authelia
+ln -sfn /state/nginx/log /var/log/nginx
 
 write_random_secret() {
   local path="$1"
@@ -35,10 +41,10 @@ if [[ ! -s /state/authelia/secrets/ldap-password ]]; then
 fi
 
 cat >/state/authelia/runtime.env <<'EOF'
-AUTHELIA_SESSION_SECRET_FILE=/state/authelia/secrets/session
-AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE=/state/authelia/secrets/storage-encryption
-AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE=/state/authelia/secrets/reset-jwt
-AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE=/state/authelia/secrets/ldap-password
+AUTHELIA_SESSION_SECRET_FILE=/etc/authelia/secrets/session
+AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE=/etc/authelia/secrets/storage-encryption
+AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE=/etc/authelia/secrets/reset-jwt
+AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE=/etc/authelia/secrets/ldap-password
 EOF
 chmod 0600 /state/authelia/runtime.env /state/authelia/secrets/*
 
@@ -47,10 +53,6 @@ if [[ ! -s /state/authelia/configuration.yml.example ]]; then
   envsubst "$template_vars" </defaults/authelia.configuration.yml.example.template \
     >/state/authelia/configuration.yml.example
 fi
-if [[ ! -s /state/STUDENT_TASK.md || -e /state/.first-boot ]]; then
-  envsubst '$MFA_GATEWAY_ROLE $MFA_APP_DOMAIN $MFA_AUTH_DOMAIN $MFA_ALLOWED_GROUP' \
-    </defaults/STUDENT_TASK.md.template >/state/STUDENT_TASK.md
-fi
 if [[ ! -s /state/nginx/nginx.conf ]]; then
   envsubst '${MFA_APP_DOMAIN} ${MFA_AUTH_DOMAIN} ${MFA_BACKEND_IP} ${MFA_BACKEND_PORT} ${MFA_AUTHELIA_PORT}' \
     <"/defaults/nginx-${MFA_GATEWAY_ROLE}.conf.template" >/state/nginx/nginx.conf
@@ -58,6 +60,7 @@ fi
 if [[ ! -s /state/nginx/snippets/authelia-authrequest.conf ]]; then
   cp /defaults/authelia-authrequest.conf /state/nginx/snippets/authelia-authrequest.conf
 fi
+ln -sfn /state/nginx/snippets/authelia-authrequest.conf /etc/nginx/snippets/authelia-authrequest.conf
 if [[ "$MFA_GATEWAY_ROLE" == dbo && ! -e /state/.migration-dbo-original-url-v1 ]]; then
   sed -i 's#X-Original-URL \$scheme://#X-Original-URL https://#; s#X-Forwarded-Proto \$http_x_forwarded_proto#X-Forwarded-Proto https#' \
     /state/nginx/nginx.conf
@@ -72,6 +75,8 @@ if [[ "$MFA_GATEWAY_TLS" == 1 && ! -s /state/tls/server.crt ]]; then
   chmod 0600 /state/tls/server.key
 fi
 
+ln -sfn /state/tls/server.crt /etc/ssl/certs/banklab-mfa.crt
+ln -sfn /state/tls/server.key /etc/ssl/private/banklab-mfa.key
 ln -sfn /state/nginx/nginx.conf /etc/nginx/nginx.conf
 nginx -t
 if [[ -e /state/authelia/enabled ]]; then

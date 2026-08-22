@@ -2,7 +2,7 @@
 
 Вы получаете уже работающий, намеренно небезопасный START. Не меняйте
 `compose.yaml`, Dockerfile, Docker networks и количество машин. Работайте по SSH
-или xRDP внутри выданных машин; текущее состояние сохраняйте в `/state`.
+или xRDP внутри выданных машин и используйте стандартные Linux-пути.
 
 ## Результат
 
@@ -35,25 +35,22 @@
 На каждой машине:
 
 ```bash
-cat /state/STUDENT_TASK.md
-sudo cp /state/nftables.conf /state/nftables.conf.bak
-sudo nano /state/nftables.conf
-sudo nft -c -f /state/nftables.conf
-sudo nft -f /state/nftables.conf
-sudo banklab-save-firewall
+sudo cp /etc/nftables.conf /etc/nftables.conf.bak
+sudo nano /etc/nftables.conf
+sudo nft -c -f /etc/nftables.conf
+sudo nft -f /etc/nftables.conf
 ```
 
-Для SSH/PAM сначала редактируйте persistent-файл в `/state`, затем проверяйте
-`sshd -t`/конфигурацию PAM и только потом перезагружайте сервис. OpenVPN
-конфигурация — `/state/openvpn/server.conf`; PAM — `/state/pam`.
+Для SSH используйте `/etc/ssh/sshd_config`, для PAM — `/etc/pam.d/sshd` и
+`/etc/nslcd.conf`. Сначала проверяйте `sshd -t` и синтаксис PAM, затем применяйте
+изменения. Конфигурация OpenVPN находится в `/etc/openvpn/server/server.conf`.
 
-На каждом веб-MFA-шлюзе начните с задания и готового примера:
+На каждом веб-MFA-шлюзе начните с готового примера:
 
 ```bash
-cat /state/STUDENT_TASK.md
-sudo cp /state/authelia/configuration.yml.example /state/authelia/configuration.yml
-sudo nano /state/authelia/configuration.yml
-sudo nano /state/nginx/nginx.conf
+sudo cp /etc/authelia/configuration.yml.example /etc/authelia/configuration.yml
+sudo nano /etc/authelia/configuration.yml
+sudo nano /etc/nginx/nginx.conf
 sudo banklab-mfa-validate
 sudo banklab-mfa-enable
 sudo banklab-mfa-status

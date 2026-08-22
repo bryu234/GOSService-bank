@@ -8,7 +8,7 @@ server:
 
 log:
   level: 'info'
-  file_path: '/state/authelia/authelia.log'
+  file_path: '/var/log/authelia/authelia.log'
   keep_stdout: false
 
 totp:
@@ -60,8 +60,8 @@ session:
 
 storage:
   local:
-    path: '/state/authelia/db.sqlite3'
+    path: '/var/lib/authelia/db.sqlite3'
 
 notifier:
   filesystem:
-    filename: '/state/authelia/notification.txt'
+    filename: '/var/lib/authelia/notification.txt'

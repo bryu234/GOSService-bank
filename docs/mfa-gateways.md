@@ -20,26 +20,25 @@ MFA пользователь отдельно входит в само прил�
 Выполните на `bank_mfa_dbo`, затем отдельно на `bank_mfa_abs`:
 
 ```bash
-cat /state/STUDENT_TASK.md
-sudo cp /state/authelia/configuration.yml.example /state/authelia/configuration.yml
-sudo nano /state/authelia/configuration.yml
+sudo cp /etc/authelia/configuration.yml.example /etc/authelia/configuration.yml
+sudo nano /etc/authelia/configuration.yml
 ```
 
 Проверьте LDAP-адрес, `base_dn`, bind user, фильтры пользователей/групп и
 разрешённую группу. Пароль bind user уже хранится отдельно в
-`/state/authelia/secrets/ldap-password`; в YAML его добавлять не нужно. Замените
+`/etc/authelia/secrets/ldap-password`; в YAML его добавлять не нужно. Замените
 политику приложения с `one_factor` на `two_factor`.
 
 Затем включите подготовленный `auth_request` в location приложения:
 
 ```bash
-sudo nano /state/nginx/nginx.conf
+sudo nano /etc/nginx/nginx.conf
 ```
 
 Уберите `#` только у строки:
 
 ```nginx
-include /state/nginx/snippets/authelia-authrequest.conf;
+include /etc/nginx/snippets/authelia-authrequest.conf;
 ```
 
 Проверка и включение:
@@ -58,8 +57,8 @@ authelia: running
 nginx auth_request: enabled
 ```
 
-Конфигурация и включённое состояние находятся в `/state` и сохраняются после
-restart, recreate и перезагрузки VM.
+Конфигурация и включённое состояние сохраняются после restart, recreate и
+перезагрузки VM.
 
 ## Сетевые правила TARGET
 
@@ -83,7 +82,7 @@ restart, recreate и перезагрузки VM.
 1. Откройте защищённый адрес в новом приватном окне браузера.
 2. Войдите LDAP-пользователем из разрешённой группы.
 3. Зарегистрируйте TOTP в приложении-аутентификаторе. Ссылка регистрации при
-   необходимости появляется в `/state/authelia/notification.txt`.
+   необходимости появляется в `/var/lib/authelia/notification.txt`.
 4. Убедитесь, что неверный одноразовый код отклоняется.
 5. Убедитесь, что актуальный код принимается и открывается обычная форма входа
    самого ДБО или АБС.

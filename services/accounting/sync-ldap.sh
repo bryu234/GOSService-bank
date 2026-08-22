@@ -39,8 +39,8 @@ INSERT INTO llx_const (name, entity, value, type, visible) VALUES
   ('LDAP_GROUP_FILTER',1,'objectClass=groupOfNames','string',0);
 SQL
 
-php /state/dolibarr/scripts/user/sync_users_ldap2dolibarr.php nocommitiferror -y
-php /state/dolibarr/scripts/user/sync_groups_ldap2dolibarr.php nocommitiferror -y
+php /var/www/dolibarr/scripts/user/sync_users_ldap2dolibarr.php nocommitiferror -y
+php /var/www/dolibarr/scripts/user/sync_groups_ldap2dolibarr.php nocommitiferror -y
 
 psql -h 127.0.0.1 -U "$ACC_DB_USER" -d "$ACC_DB_NAME" -v ON_ERROR_STOP=1 <<'SQL'
 DELETE FROM llx_usergroup_rights ugr

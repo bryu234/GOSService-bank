@@ -7,7 +7,8 @@ banklab_init_state bank_abs_db
 banklab_start_support
 
 pgdata=/var/lib/postgresql/16/main
-install -d -m 0700 -o postgres -g postgres "$pgdata" /state/postgresql
+install -d -m 0700 -o postgres -g postgres "$pgdata" /state/postgresql /state/postgresql/log
+install -d -m 0755 /etc/postgresql/16/main /var/log/postgresql
 if [[ ! -s "$pgdata/PG_VERSION" ]]; then
   runuser -u postgres -- /usr/lib/postgresql/16/bin/initdb -D "$pgdata" --auth-local=trust --auth-host=scram-sha-256
 fi
@@ -18,8 +19,12 @@ if [[ ! -s /state/postgresql/pg_hba.conf ]]; then
   envsubst </defaults/pg_hba.conf.template >/state/postgresql/pg_hba.conf
 fi
 chown -R postgres:postgres /state/postgresql "$pgdata"
+ln -sfn /state/postgresql/postgresql.conf /etc/postgresql/16/main/postgresql.conf
+ln -sfn /state/postgresql/pg_hba.conf /etc/postgresql/16/main/pg_hba.conf
+rm -rf /var/log/postgresql
+ln -sfn /state/postgresql/log /var/log/postgresql
 
-pg_args=(-D "$pgdata" -o "-c config_file=/state/postgresql/postgresql.conf -c hba_file=/state/postgresql/pg_hba.conf")
+pg_args=(-D "$pgdata" -o "-c config_file=/etc/postgresql/16/main/postgresql.conf -c hba_file=/etc/postgresql/16/main/pg_hba.conf")
 if [[ -e /state/.first-boot ]]; then
   runuser -u postgres -- /usr/lib/postgresql/16/bin/pg_ctl "${pg_args[@]}" -w start
   runuser -u postgres -- psql -v ON_ERROR_STOP=1 --set=db_user="$ABS_DB_USER" --set=db_password="$ABS_DB_PASSWORD" --set=db_name="$ABS_DB_NAME" <<'SQL'
@@ -33,4 +38,4 @@ fi
 
 banklab_finish_initialization
 exec runuser -u postgres -- /usr/lib/postgresql/16/bin/postgres -D "$pgdata" \
-  -c config_file=/state/postgresql/postgresql.conf -c hba_file=/state/postgresql/pg_hba.conf
+  -c config_file=/etc/postgresql/16/main/postgresql.conf -c hba_file=/etc/postgresql/16/main/pg_hba.conf
