@@ -66,7 +66,8 @@ restart, recreate и перезагрузки VM.
 Полное практическое задание: [STUDENT.md](STUDENT.md). Топология и справочники:
 [docs/topology.md](docs/topology.md), [docs/accounts.md](docs/accounts.md),
 [docs/ports.md](docs/ports.md), [docs/mfa-gateways.md](docs/mfa-gateways.md),
-[docs/upstream-software.md](docs/upstream-software.md).
+[docs/upstream-software.md](docs/upstream-software.md),
+[docs/remote-access.md](docs/remote-access.md).
 
 Фактический `.env` содержит учебные пароли и не коммитится. Defaults из
 `.env.example` не являются production-практикой и должны быть заменены до
